@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
+let clears=0,images=0,strokes=0,reduced=false,resize;
+const ctx=new Proxy({clearRect(){clears++;},drawImage(){images++;},stroke(){strokes++;}}, {get:(o,k)=>k in o?o[k]:()=>{}});
+const nodes=new Map();
+function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
+const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>false}}};
+const sandbox={document,SONORA:{},requestAnimationFrame:()=>{},ResizeObserver:class{constructor(f){resize=f}observe(){}},matchMedia:()=>({matches:reduced}),devicePixelRatio:1,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Math};sandbox.window=sandbox;
+vm.createContext(sandbox);
+const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
+vm.runInContext(code+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now)});this.frame=draw;`,sandbox);
+const set=sandbox.SONORA.setStyle;
+set('dub');assert.equal(sandbox.probe().scene,'dub');
+sandbox.__sonoraNative={mode:'microphone',generation:1,bands:[.8,.5,.7],rms:.6,timeline:{position:0,track:''}};
+for(let t=16;t<1800;t+=8)sandbox.frame(t);
+assert(sandbox.probe().length<=96);assert(images>100&&strokes>100,'feedback and delayed ribbons must draw');
+assert(sandbox.probe().taps[0]>=1800-908);
+set('bad');assert.equal(sandbox.probe().scene,'dub');
+set('orbit');assert.equal(sandbox.probe().length,0);sandbox.frame(1800);set('dub');
+sandbox.frame(1820);assert.equal(sandbox.probe().length,1);
+sandbox.__sonoraNative.generation=2;sandbox.frame(1840);assert.equal(sandbox.probe().length,1);
+resize();assert.equal(sandbox.probe().length,0);
+sandbox.frame(1860);reduced=true;const before=images;sandbox.frame(1880);assert.equal(sandbox.probe().length,0);assert.equal(sandbox.probe().transient,0);assert.equal(images-before,1,'reduced mode copies output but must not draw feedback');
+reduced=false;sandbox.__sonoraNative={mode:'apple',generation:3,bands:[0,0,0],rms:0,timeline:{playing:false,position:5,track:'a'}};sandbox.frame(1900);const paused=strokes;sandbox.frame(1920);assert.equal(strokes,paused);
+sandbox.__sonoraNative.timeline.track='b';sandbox.frame(1940);assert.equal(sandbox.probe().length,1);
+nodes.get('#audio').listeners.seeking();assert.equal(sandbox.probe().length,0);
+for(const style of ['bloom','orbit','tide']){set(style);sandbox.frame(2000);assert.equal(sandbox.probe().scene,style)}
+assert(html.includes('<option value="dub">Dub</option>'));
+for(const path of ['ios/SONORA/SONORAApp.swift','ios/SONORA/RendererHost.swift'])assert((await Bun.file(new URL('../'+path,import.meta.url)).text()).includes('"dub"'));
+assert(clears>0);
+console.log('PASS: Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');

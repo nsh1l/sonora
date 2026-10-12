@@ -37,7 +37,7 @@
 </style>
 </head>
 <body>
-<!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among three different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
+<!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among four different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
 <main class="shell">
 <header class="top"><div class="brand">S<span>O</span>NORA</div><div class="tag">A living instrument for sound</div></header>
 <section class="stage" aria-label="Audio visualization">
@@ -53,7 +53,7 @@
 <button class="icon-btn play" id="play" aria-label="Play" disabled><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
 <button class="icon-btn" id="forward" aria-label="Skip to end" disabled><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM5 6v12l10-6z"/></svg></button>
 </div><label class="seek"><span id="current">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" disabled><span id="duration">0:00</span></label></div>
-<div class="tools"><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option></select></div><div class="hint">Headphones recommended.<br>Local files only.</div></div>
+<div class="tools"><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option></select></div><div class="hint">Headphones recommended.<br>Local files only.</div></div>
 </footer>
 </main>
 <aside class="pwa-install" aria-label="Install SONORA"><button id="installApp" hidden>Install SONORA</button><span id="installHint" role="status">iPhone: Share → Add to Home Screen · Offline files must be selected again after reopening.</span></aside>
@@ -71,16 +71,18 @@ toggle.addEventListener('click',enter);exit.addEventListener('click',leave);docu
 </script>
 <script>
 const canvas=document.querySelector('#art'),ctx=canvas.getContext('2d'),audio=document.querySelector('#audio'),file=document.querySelector('#audioFile'),play=document.querySelector('#play'),seek=document.querySelector('#seek'),state=document.querySelector('#state'),welcome=document.querySelector('#welcome');
-window.SONORA.setStyle=(value)=>{if(['bloom','orbit','tide'].includes(value)){scene=value;document.querySelector('#scene').value=value}};
+window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub'].includes(value))return;if(scene!==value)resetDub();scene=value;document.querySelector('#scene').value=value};
 function setPlayIcon(paused){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',paused?'M8 5v14l11-7z':'M6 5h4v14H6zm8 0h4v14h-4z');svg.append(path);play.replaceChildren(svg)}
 let analyser,data,phase=0,scene='bloom',loaded=false,level=0,beat=0,lastFrame=0,objectURL;
+let dubFeedback,dubHistory=[],dubLast=null,dubTransient=0,dubPrevious=0,dubHit=-Infinity,dubStill=false;
+function resetDub(){dubHistory.length=0;dubLast=null;dubTransient=0;dubPrevious=0;dubHit=-Infinity;ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);if(dubFeedback)dubFeedback.getContext('2d').clearRect(0,0,dubFeedback.width,dubFeedback.height)}
 const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
-function resize(){const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+function resize(){const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);resetDub()}
 new ResizeObserver(resize).observe(canvas);
 function setupAudio(){if(analyser)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC){state.textContent='WEB AUDIO IS NOT AVAILABLE';return}const ac=new AC(),source=ac.createMediaElementSource(audio);analyser=ac.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.78;source.connect(analyser);analyser.connect(ac.destination);data=new Uint8Array(analyser.frequencyBinCount)}
 function band(from,to){let sum=0;for(let i=from;i<to;i++)sum+=data[i];return sum/((to-from)*255)}
-function draw(now=0){requestAnimationFrame(draw);const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;const dt=Math.min((now-lastFrame)/16.67||1,2);lastFrame=now;ctx.clearRect(0,0,w,h);
-const native=window.__sonoraNative,nativeOn=native&&(native.mode==='microphone'||native.mode==='apple');if(native?.mode==='spotify'||(window.__sonoraShell&&!nativeOn))return;
+function draw(now=0){requestAnimationFrame(draw);const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;const dt=Math.min((now-lastFrame)/16.67||1,2);lastFrame=now;if(scene!=='dub')ctx.clearRect(0,0,w,h);
+const native=window.__sonoraNative,nativeOn=native&&(native.mode==='microphone'||native.mode==='apple');if(native?.mode==='spotify'||(window.__sonoraShell&&!nativeOn)){if(scene==='dub')resetDub();return;}
 if(analyser)analyser.getByteFrequencyData(data);let bass=nativeOn?native.bands[0]:(data?band(1,14):0),mids=nativeOn?native.bands[1]:(data?band(14,92):0),highs=nativeOn?native.bands[2]:(data?band(92,240):0),rms=nativeOn?native.rms:0;
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(nativeOn&&native.mode==='apple'){
@@ -97,16 +99,72 @@ if(scene==='bloom'){
   // A woven field of Lissajous trajectories; the mid band changes their orbit ratio.
   for(let ribbon=0;ribbon<15;ribbon++){const shift=ribbon*.095,scale=R*(.76+ribbon*.025)*pulse;ctx.beginPath();for(let i=0;i<=420;i++){const t=i/420*Math.PI*2,x=cx+Math.sin(t*(2+mids*.3)+phase+shift)*scale*1.16,y=cy+Math.sin(t*3-phase*.75+shift*2)*scale*.66; i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.strokeStyle=`hsla(${ribbon%3===0?17:175+ribbon*3},80%,${ribbon%3===0?71:76}%,${.18+ribbon*.022})`;ctx.lineWidth=ribbon%3===0?2.2:1;ctx.stroke()}
   for(let n=0;n<22;n++){const t=n*Math.PI*2/22+phase*.26,r=R*(.8+highs*.22);ctx.beginPath();ctx.arc(cx+Math.sin(2*t+phase)*r*1.16,cy+Math.sin(3*t-phase*.75)*r*.66,1.2+highs*3,0,Math.PI*2);ctx.fillStyle=n%4?'#b6f5d4':'#ff917b';ctx.fill()}
+}else if(scene==='dub'){
+  drawDub(now,w,h,cx,cy,R,bass,mids,highs,still,nativeOn&&native.mode==='apple');
 }else{
   // Horizontal contour strata cover the entire field instead of another radial variation.
   for(let row=0;row<31;row++){const y=h*(.11+row*.026),amp=h*(.03+level*.13),bend=Math.sin(row*.32+phase)*amp;ctx.beginPath();ctx.moveTo(0,h);for(let i=0;i<=140;i++){const x=i/140*w,t=i/140,edge=Math.sin(t*Math.PI),wave=Math.sin(t*11+phase*1.4+row*.21)*amp*.34+Math.sin(t*23-phase+row*.35)*highs*amp*.5;ctx.lineTo(x,y+bend*edge+wave*edge+Math.sin(t*4+row*.13)*mids*h*.12)}ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle=`hsla(${row<13?178+row*3:18+row*3},${row<13?57:75}%,${row<13?24:48}%,${.065+row*.002})`;ctx.fill();ctx.strokeStyle=`hsla(${row<13?169:22+row*2},80%,75%,${.1+row*.012})`;ctx.lineWidth=row%5===0?1.5:.7;ctx.stroke()}
 }
 }
+// Dub keeps a single feedback canvas and sampled geometry, never a growing stack of bitmaps.
+function drawDub(now,w,h,cx,cy,R,bass,mids,highs,still,apple){
+  const native=window.__sonoraNative;
+  const source=native?`${native.mode}:${native.generation}:${native.timeline?.track||''}`:(objectURL||'idle');
+  const position=apple?native.timeline.position:audio.currentTime;
+  if(dubLast&&(dubLast.source!==source||position<dubLast.position-.1||position>dubLast.position+2||still!==dubStill))resetDub();
+  const elapsed=dubLast?Math.max(0,now-dubLast.now):16.67;
+  dubLast={source,position,now};dubStill=still;
+  // A paused playback-position instrument stays still; it is not analyzed audio.
+  if(apple&&!still&&native.timeline.playing===false&&dubHistory.length)return;
+  if(!dubFeedback){dubFeedback=document.createElement('canvas');}
+  if(dubFeedback.width!==canvas.width||dubFeedback.height!==canvas.height){dubFeedback.width=canvas.width;dubFeedback.height=canvas.height;}
+  const feedback=dubFeedback.getContext('2d');
+  if(still){ctx.clearRect(0,0,w,h);dubHistory.length=0;dubTransient=0;}
+  else{
+    ctx.clearRect(0,0,w,h);ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=Math.pow(.987,elapsed/16.67);
+    ctx.translate(cx,cy);ctx.rotate(Math.sin(phase*.7)*.004);const zoom=1.004+bass*.007;ctx.scale(zoom,zoom);
+    ctx.drawImage(dubFeedback,0,0,dubFeedback.width,dubFeedback.height,-cx,-cy,w,h);ctx.restore();
+    ctx.fillStyle=`rgba(8,11,18,${1-Math.pow(.995,elapsed/16.67)})`;ctx.fillRect(0,0,w,h);
+    dubTransient*=Math.exp(-elapsed/150);
+    const drive=bass*.65+mids*.2+highs*.35;
+    if(!apple&&drive-dubPrevious>.10&&now-dubHit>180){dubTransient=Math.min(1,(drive-dubPrevious)*3);dubHit=now;}
+    dubPrevious=drive;
+  }
+  const points=[];
+  for(let i=0;i<=180;i++){
+    const t=i/180,a=t*Math.PI*2;
+    const warp=Math.sin(a*3+phase*2)*(.20+mids*.23)+Math.sin(a*17-phase*3)*highs*.10;
+    const r=R*(.49+bass*.25+warp);
+    points.push([cx+Math.cos(a+phase*.6)*r*1.17,cy+Math.sin(a*2-phase*.45)*r*.72]);
+  }
+  if(!still){
+    dubHistory.push({now,points,bass,highs});
+    // ponytail: 96 geometry snapshots / 900ms; use a time-resampled ring only if measured high-refresh cost warrants it.
+    while(dubHistory.length>96||dubHistory[0].now<now-900)dubHistory.shift();
+  }
+  function ribbon(sample,tap){
+    const shift=still?0:dubTransient*(8+sample.highs*16);
+    for(let color=0;color<3;color++){
+      ctx.beginPath();sample.points.forEach(([x,y],i)=>{x+=(color-1)*shift+tap*12*Math.sin(phase);y+=tap*9; i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+      ctx.strokeStyle=['#ff397c','#55ffe4','#8970ff'][color];ctx.shadowColor=ctx.strokeStyle;
+      ctx.shadowBlur=color===1?(12+sample.bass*38)/(tap+1):0;ctx.lineWidth=(3+sample.bass*17)/(1+tap*.5);
+      ctx.globalAlpha=(color===1?.40:.22)/(1+tap*.7);ctx.stroke();
+    }
+  }
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  if(!still)for(let tap=3;tap>=1;tap--){const target=now-tap*180;let sample;for(let i=dubHistory.length-1;i>=0;i--)if(dubHistory[i].now<=target){sample=dubHistory[i];break;}if(sample)ribbon(sample,tap);}
+  ribbon({points,bass,highs},0);
+  ctx.shadowBlur=0;ctx.globalAlpha=.65;
+  for(let i=0;i<24;i++){const [x,y]=points[(i*7)%points.length];ctx.beginPath();ctx.arc(x+Math.sin(i+phase)*highs*30,y+Math.cos(i*2-phase)*highs*30,1+highs*5+bass*2,0,Math.PI*2);ctx.fillStyle=i%2?'#55ffe4':'#ff397c';ctx.fill();}
+  ctx.restore();
+  feedback.clearRect(0,0,dubFeedback.width,dubFeedback.height);feedback.drawImage(canvas,0,0);
+}
 draw();
-file.addEventListener('change',()=>{const f=file.files?.[0];if(!f)return;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);audio.src=objectURL;audio.load();loaded=true;document.querySelector('#trackName').textContent=f.name.replace(/\.[^.]+$/,'');document.querySelector('#trackSub').textContent='Ready to play · audio remains on this device';welcome.hidden=true;state.textContent='READY · '+(f.type.split('/')[1]||'AUDIO').toUpperCase();for(const el of [play,seek,document.querySelector('#back'),document.querySelector('#forward')])el.disabled=false});
+file.addEventListener('change',()=>{const f=file.files?.[0];if(!f)return;resetDub();if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);audio.src=objectURL;audio.load();loaded=true;document.querySelector('#trackName').textContent=f.name.replace(/\.[^.]+$/,'');document.querySelector('#trackSub').textContent='Ready to play · audio remains on this device';welcome.hidden=true;state.textContent='READY · '+(f.type.split('/')[1]||'AUDIO').toUpperCase();for(const el of [play,seek,document.querySelector('#back'),document.querySelector('#forward')])el.disabled=false});
 play.addEventListener('click',async()=>{setupAudio();if(!analyser)return;if(audio.paused){await audio.play();await analyser.context.resume()}else audio.pause()});
 audio.addEventListener('play',()=>{play.setAttribute('aria-label','Pause');setPlayIcon(false);state.textContent='NOW PLAYING'});audio.addEventListener('pause',()=>{play.setAttribute('aria-label','Play');setPlayIcon(true);if(loaded&&audio.currentTime<audio.duration)state.textContent='PAUSED'});audio.addEventListener('ended',()=>{play.setAttribute('aria-label','Play');setPlayIcon(true);state.textContent='TRACK ENDED'});
-audio.addEventListener('loadedmetadata',()=>{document.querySelector('#duration').textContent=fmt(audio.duration);seek.disabled=false});audio.addEventListener('timeupdate',()=>{document.querySelector('#current').textContent=fmt(audio.currentTime||0);if(!seek.matches(':active')&&audio.duration)seek.value=audio.currentTime/audio.duration*1000});seek.addEventListener('input',()=>{if(audio.duration)audio.currentTime=seek.value/1000*audio.duration});document.querySelector('#back').addEventListener('click',()=>{audio.currentTime=0});document.querySelector('#forward').addEventListener('click',()=>{audio.currentTime=Math.max(0,audio.duration-1)});document.querySelector('#scene').addEventListener('change',e=>scene=e.target.value);
+audio.addEventListener('loadedmetadata',()=>{document.querySelector('#duration').textContent=fmt(audio.duration);seek.disabled=false});audio.addEventListener('timeupdate',()=>{document.querySelector('#current').textContent=fmt(audio.currentTime||0);if(!seek.matches(':active')&&audio.duration)seek.value=audio.currentTime/audio.duration*1000});seek.addEventListener('input',()=>{if(audio.duration)audio.currentTime=seek.value/1000*audio.duration});document.querySelector('#back').addEventListener('click',()=>{audio.currentTime=0});document.querySelector('#forward').addEventListener('click',()=>{audio.currentTime=Math.max(0,audio.duration-1)});document.querySelector('#scene').addEventListener('change',e=>window.SONORA.setStyle(e.target.value));
+audio.addEventListener('seeking',()=>{if(scene==='dub')resetDub()});
 audio.addEventListener('error',()=>{state.textContent='COULDN’T READ THIS AUDIO FILE';document.querySelector('#trackSub').textContent='Try another common audio format.'});
 </script>
 </body>

@@ -18,7 +18,9 @@ SONORAという名前は、*sonic* や *sonorous* を思わせる「音・響き
 bun server.mjs
 ```
 
-Open `http://localhost:4178`, choose an audio file, and use the existing Bloom, Orbit, or Tide renderer. Use the stage’s top-right fullscreen button for an immersive visualizer; Escape or its minimal exit button returns to the controls. The server exposes the PWA shell, manifest, worker, and icons with correct MIME types.
+Open `http://localhost:4178`, choose an audio file, and use the Bloom, Orbit, Tide, or Dub renderer. Use the stage’s top-right fullscreen button for an immersive visualizer; Escape or its minimal exit button returns to the controls. The server exposes the PWA shell, manifest, worker, and icons with correct MIME types.
+
+Dub adds thick luminous ribbons, feedback trails, three delayed geometry taps (180/360/540 ms), bass-driven glow, and transient color separation. No full-screen strobe is used. Reduced motion disables feedback movement and transient color separation. Apple Music remains playback-position art, not audio analysis.
 
 ## PWA
 
@@ -31,7 +33,7 @@ When changing a precached asset, bump the `CACHE` version in `sw.js` so existing
 ### Publish to the existing Cloudflare Pages project
 
 ```sh
-bun checks/native-bridge-check.mjs && bun checks/pwa-check.mjs && bun checks/fullscreen-check.mjs && bun build.mjs
+bun checks/native-bridge-check.mjs && bun checks/pwa-check.mjs && bun checks/fullscreen-check.mjs && bun checks/dub-check.mjs && bun build.mjs
 bunx wrangler pages deploy dist --project-name sonora-viz --branch main
 ```
 
