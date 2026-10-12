@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080b12">
 <title>SONORA — living sound</title>
 <style>
 :root{color-scheme:dark;--ink:#f2f3f4;--dim:#a3acb6;--void:#080b12;--panel:#111722;--line:#293342;--mint:#b6f5d4;--coral:#ff917b;--blue:#98b8ff;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;background:var(--void);color:var(--ink);min-height:100vh;selection-background-color:var(--mint);selection-color:var(--void)}button,input{font:inherit}button{color:inherit}button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--mint);outline-offset:3px}.shell{min-height:100vh;display:grid;grid-template-rows:66px minmax(410px,1fr) auto;max-width:1800px;margin:auto;padding:0 34px}.top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.12em}.brand{font-weight:760;letter-spacing:.22em}.brand span{color:var(--mint)}.tag{color:var(--dim);letter-spacing:.04em;font-size:11px}.stage{position:relative;min-height:430px;display:grid;place-items:center;overflow:hidden}.stage:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 25%,rgba(8,11,18,.24) 75%,var(--void) 120%)}canvas{position:absolute;width:100%;height:100%;inset:0}.stage-copy{position:relative;z-index:1;text-align:center;pointer-events:none}.stage-copy h1{font-size:clamp(38px,7vw,88px);letter-spacing:-.065em;line-height:.94;font-weight:530;margin:0}.stage-copy p{color:#c2ccd4;font-size:13px;margin:18px 0 0;letter-spacing:.03em}.visual-label{position:absolute;z-index:2;left:0;top:24px;color:#b1bcc7;font-size:11px;letter-spacing:.12em}.visual-label:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--coral);margin-right:9px}.bottom{display:grid;grid-template-columns:minmax(190px,1fr) minmax(280px,2fr) minmax(190px,1fr);gap:24px;align-items:center;padding:19px 0 24px;border-top:1px solid var(--line)}.track{min-width:0}.track-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.track-sub{font-size:11px;color:var(--dim);margin-top:5px}.transport{display:grid;gap:13px}.controls{display:flex;align-items:center;justify-content:center;gap:18px}.icon-btn{width:38px;height:38px;border:1px solid var(--line);background:transparent;border-radius:50%;display:grid;place-items:center;cursor:pointer}.icon-btn:hover:not(:disabled){border-color:var(--mint);color:var(--mint)}.icon-btn:disabled{opacity:.4;cursor:not-allowed}.play{width:48px;height:48px;background:var(--mint);color:#101810;border:0}.play:hover:not(:disabled){background:#d2ffe4;color:#101810}.icon-btn svg{width:17px;height:17px;fill:currentColor}.seek{display:grid;grid-template-columns:38px 1fr 38px;align-items:center;gap:10px;color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}.seek input{width:100%;accent-color:var(--mint);cursor:pointer}.tools{display:flex;justify-content:flex-end;align-items:center;gap:12px}.select-wrap{position:relative}.select-wrap:after{content:"⌄";position:absolute;right:10px;top:7px;color:var(--dim);pointer-events:none}.select-wrap select{appearance:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:9px 26px 9px 11px;color:var(--ink);font-size:11px}.file-btn{border:1px solid var(--line);background:transparent;padding:9px 12px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap}.file-btn:hover{border-color:var(--mint);color:var(--mint)}input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}.hint{color:var(--dim);font-size:11px;line-height:1.5;text-align:right;max-width:145px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:760px){.shell{padding:0 18px;grid-template-rows:56px minmax(330px,1fr) auto}.tag{font-size:11px}.stage{min-height:350px}.bottom{grid-template-columns:1fr 1fr;gap:17px}.track{grid-column:1/-1}.transport{grid-column:1/-1;grid-row:2}.tools{grid-column:1/-1;grid-row:3;justify-content:space-between}.hint{text-align:left;max-width:none}.visual-label{top:16px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important}}
 </style>
+<style>.sonora-shell .transport,.sonora-shell .tools,.sonora-shell .stage-copy{display:none}.sonora-shell .shell{min-height:100dvh;grid-template-rows:56px minmax(220px,1fr) auto}.sonora-shell .stage{min-height:220px}.sonora-shell .bottom{display:block}.sonora-shell .track-name,.sonora-shell .track-sub{white-space:normal}.sonora-spotify #art,.sonora-spotify .stage-copy{display:none}</style>
 <style>
 /* The artwork, not a headline, owns the room. */
 .stage-copy{position:absolute;left:clamp(18px,4vw,68px);bottom:clamp(32px,7vh,88px);text-align:left;z-index:2;max-width:min(390px,55%)}
@@ -17,14 +23,28 @@
 .visual-label{left:clamp(18px,4vw,68px)}
 @media(max-width:760px){.stage-copy{left:18px;bottom:30px;max-width:68%}.stage-copy h1{font-size:clamp(34px,9vw,58px)}.stage-copy p{font-size:12px}.visual-label{left:18px}}
 </style>
+<style>
+.shell{min-height:100dvh;padding:env(safe-area-inset-top) max(34px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(34px,env(safe-area-inset-left))}
+.pwa-install{max-width:1800px;margin:auto;padding:0 max(34px,env(safe-area-inset-right)) 16px max(34px,env(safe-area-inset-left));color:var(--dim);font-size:11px;line-height:1.6}
+.pwa-install button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:10px 14px;margin-right:12px;min-height:44px}
+.sonora-shell .pwa-install{display:none}
+@media(max-width:760px){.shell{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.pwa-install{padding:0 max(18px,env(safe-area-inset-right)) 16px max(18px,env(safe-area-inset-left))}}
+</style>
+<style>
+.fullscreen-toggle,.fullscreen-exit{position:absolute;z-index:4;border:1px solid var(--line);background:rgba(8,11,18,.68);color:var(--ink);border-radius:999px;min-width:44px;min-height:44px;padding:0 14px;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.fullscreen-toggle{top:16px;right:clamp(18px,4vw,68px)}.fullscreen-toggle:hover,.fullscreen-exit:hover{border-color:var(--mint);color:var(--mint)}.fullscreen-toggle svg,.fullscreen-exit svg{width:17px;height:17px;fill:currentColor}.fullscreen-exit{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));opacity:0;transform:translateY(-12px);pointer-events:none;transition:opacity 350ms cubic-bezier(.22,1,.36,1),transform 350ms cubic-bezier(.22,1,.36,1)}
+.top,.bottom,.pwa-install{position:relative;z-index:11}.visual-label,.stage-copy,.fullscreen-toggle{z-index:11}.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle{transition:opacity 350ms cubic-bezier(.22,1,.36,1),transform 350ms cubic-bezier(.22,1,.36,1)}body.visualizer-fullscreen{overflow:hidden}body.visualizer-fullscreen #art{position:fixed;inset:0;width:100vw;height:100dvh;z-index:10;background:var(--void)}body.visualizer-fullscreen .fullscreen-exit{position:fixed;z-index:12}body.visualizer-fullscreen .stage:after{opacity:0}body.visualizer-fullscreen .top{opacity:0;transform:translateY(-38px);pointer-events:none}body.visualizer-fullscreen .visual-label{opacity:0;transform:translateY(-28px);pointer-events:none}body.visualizer-fullscreen .stage-copy{opacity:0;transform:translate(-32px,32px);pointer-events:none}body.visualizer-fullscreen .bottom{opacity:0;transform:translateY(48px);pointer-events:none}body.visualizer-fullscreen .pwa-install{opacity:0;transform:translateY(42px);pointer-events:none}body.visualizer-fullscreen .fullscreen-toggle{opacity:0;transform:translate(28px,-28px);pointer-events:none}body.visualizer-fullscreen .fullscreen-exit{opacity:1;transform:none;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle,.fullscreen-exit{transition:none!important}body.visualizer-fullscreen .top,body.visualizer-fullscreen .visual-label,body.visualizer-fullscreen .stage-copy,body.visualizer-fullscreen .bottom,body.visualizer-fullscreen .pwa-install,body.visualizer-fullscreen .fullscreen-toggle{transform:none}}
+</style>
 </head>
 <body>
 <!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among three different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
 <main class="shell">
 <header class="top"><div class="brand">S<span>O</span>NORA</div><div class="tag">A living instrument for sound</div></header>
 <section class="stage" aria-label="Audio visualization">
-<canvas id="art" aria-hidden="true"></canvas><div class="visual-label" id="state">AWAITING A TRACK</div>
+<canvas id="art" aria-hidden="true"></canvas><div class="visual-label" id="state" role="status" aria-live="polite">AWAITING A TRACK</div>
 <div class="stage-copy" id="welcome"><h1>Sound,<br>in motion.</h1><p>Bring a track. Watch it become something else.</p></div>
+<button class="fullscreen-toggle" id="fullscreenToggle" type="button" aria-label="Enter visualizer fullscreen" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg><span class="sr-only">Fullscreen visualizer</span></button>
+<button class="fullscreen-exit" id="fullscreenExit" type="button" aria-label="Exit visualizer fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h2v4h4v2H6zm6 10h2v4h4v2h-6zm6-8h-4V4h6v6h-2zM4 14h2v4h4v2H4z"/></svg><span class="sr-only">Exit fullscreen</span></button>
 </section>
 <footer class="bottom">
 <div class="track"><div class="track-name" id="trackName">No track loaded</div><div class="track-sub" id="trackSub">Your audio stays in this browser.</div></div>
@@ -36,9 +56,22 @@
 <div class="tools"><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option></select></div><div class="hint">Headphones recommended.<br>Local files only.</div></div>
 </footer>
 </main>
+<aside class="pwa-install" aria-label="Install SONORA"><button id="installApp" hidden>Install SONORA</button><span id="installHint" role="status">iPhone: Share → Add to Home Screen · Offline files must be selected again after reopening.</span></aside>
+<script type="module">if(['https:','http:'].includes(location.protocol))import('/pwa.mjs');</script>
 <audio id="audio" crossorigin="anonymous"></audio>
+<script src="native-bridge.js"></script>
+<script>
+(()=>{const stage=document.documentElement,toggle=document.querySelector('#fullscreenToggle'),exit=document.querySelector('#fullscreenExit'),chrome=[document.querySelector('.top'),document.querySelector('#state'),document.querySelector('#welcome'),document.querySelector('.bottom'),document.querySelector('.pwa-install'),toggle].filter(Boolean);let immersive=false,wantsFullscreen=false;
+const setInert=(node,value)=>{node.inert=value;node.toggleAttribute('inert',value);if(value)node.setAttribute('aria-hidden','true');else node.removeAttribute('aria-hidden')};
+const restoreFocus=()=>{if(!immersive)toggle.focus?.({preventScroll:true})};
+function render(active,returnFocus=false){immersive=active;document.body.classList.toggle('visualizer-fullscreen',active);toggle.setAttribute('aria-pressed',String(active));toggle.setAttribute('aria-label',active?'Exit visualizer fullscreen':'Enter visualizer fullscreen');chrome.forEach(node=>setInert(node,active));setInert(exit,!active);if(active)exit.focus?.({preventScroll:true});else if(returnFocus)restoreFocus()}
+function leave(){wantsFullscreen=false;if(document.fullscreenElement===stage&&document.exitFullscreen)document.exitFullscreen()?.catch(()=>{});render(false,true)}
+function enter(){if(immersive)return;wantsFullscreen=true;render(true);if(!stage.requestFullscreen)return;try{const pending=stage.requestFullscreen();pending?.catch(()=>{if(wantsFullscreen&&!document.fullscreenElement)render(true)})}catch(_){if(wantsFullscreen)render(true)}}
+toggle.addEventListener('click',enter);exit.addEventListener('click',leave);document.addEventListener('keydown',event=>{if(event.key==='Escape'&&immersive)leave()});document.addEventListener('fullscreenchange',()=>{const native=document.fullscreenElement===stage;if(native&&!wantsFullscreen){document.exitFullscreen?.();return}wantsFullscreen=native;render(native,!native)});render(false)})();
+</script>
 <script>
 const canvas=document.querySelector('#art'),ctx=canvas.getContext('2d'),audio=document.querySelector('#audio'),file=document.querySelector('#audioFile'),play=document.querySelector('#play'),seek=document.querySelector('#seek'),state=document.querySelector('#state'),welcome=document.querySelector('#welcome');
+window.SONORA.setStyle=(value)=>{if(['bloom','orbit','tide'].includes(value)){scene=value;document.querySelector('#scene').value=value}};
 function setPlayIcon(paused){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',paused?'M8 5v14l11-7z':'M6 5h4v14H6zm8 0h4v14h-4z');svg.append(path);play.replaceChildren(svg)}
 let analyser,data,phase=0,scene='bloom',loaded=false,level=0,beat=0,lastFrame=0,objectURL;
 const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
@@ -47,10 +80,14 @@ new ResizeObserver(resize).observe(canvas);
 function setupAudio(){if(analyser)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC){state.textContent='WEB AUDIO IS NOT AVAILABLE';return}const ac=new AC(),source=ac.createMediaElementSource(audio);analyser=ac.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.78;source.connect(analyser);analyser.connect(ac.destination);data=new Uint8Array(analyser.frequencyBinCount)}
 function band(from,to){let sum=0;for(let i=from;i<to;i++)sum+=data[i];return sum/((to-from)*255)}
 function draw(now=0){requestAnimationFrame(draw);const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;const dt=Math.min((now-lastFrame)/16.67||1,2);lastFrame=now;ctx.clearRect(0,0,w,h);
-if(analyser)analyser.getByteFrequencyData(data);const bass=data?band(1,14):0,mids=data?band(14,92):0,highs=data?band(92,240):0;
-level+=(bass-level)*Math.min(1,.12*dt);beat=Math.max(0,beat-.022*dt);if(bass>level+.12)beat=Math.min(1,beat+.25);
-const still=matchMedia('(prefers-reduced-motion: reduce)').matches;if(!still)phase+=dt*(.003+(audio.paused?0:bass*.013));
-const cx=w*.59,cy=h*.49,R=Math.min(w*.48,h*.71),pulse=1+level*.22+beat*.07;
+const native=window.__sonoraNative,nativeOn=native&&(native.mode==='microphone'||native.mode==='apple');if(native?.mode==='spotify'||(window.__sonoraShell&&!nativeOn))return;
+if(analyser)analyser.getByteFrequencyData(data);let bass=nativeOn?native.bands[0]:(data?band(1,14):0),mids=nativeOn?native.bands[1]:(data?band(14,92):0),highs=nativeOn?native.bands[2]:(data?band(92,240):0),rms=nativeOn?native.rms:0;
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(nativeOn&&native.mode==='apple'){
+  // ponytail: deterministic time-based art, not detected beats; actual audio analysis is microphone-only.
+  const p=still?0:native.timeline.position;phase=p*.25;bass=.16+Math.abs(Math.sin(p*.71))*.2;mids=.12+Math.abs(Math.sin(p*.37+1))*.24;highs=.08+Math.abs(Math.sin(p*1.13+2))*.18;level=bass;beat=0;
+}else{const drive=Math.max(bass,rms*.8);level+=(drive-level)*Math.min(1,.12*dt);beat=Math.max(0,beat-.022*dt);if(drive>level+.12)beat=Math.min(1,beat+.25);if(!still)phase+=dt*(.003+((nativeOn||!audio.paused)?drive*.013:0));}
+const immersive=document.body.classList.contains('visualizer-fullscreen'),cx=w*(immersive?.5:.59),cy=h*(immersive?.5:.49),R=Math.min(w*.48,h*.71),pulse=1+level*.22+beat*.07;
 if(scene==='bloom'){
   // Overlapping ink petals and fine veins: bass opens the form, mids crease it, treble roughens its edges.
   for(let layer=0;layer<9;layer++){const size=R*(.58+layer*.06)*pulse,rotation=phase*(layer%2?1:-1)+layer*.29;
