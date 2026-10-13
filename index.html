@@ -32,7 +32,7 @@
 </style>
 <style>
 .fullscreen-toggle,.fullscreen-exit{position:absolute;z-index:4;border:1px solid var(--line);background:rgba(8,11,18,.68);color:var(--ink);border-radius:999px;min-width:44px;min-height:44px;padding:0 14px;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.fullscreen-toggle{top:16px;right:clamp(18px,4vw,68px)}.fullscreen-toggle:hover,.fullscreen-exit:hover{border-color:var(--mint);color:var(--mint)}.fullscreen-toggle svg,.fullscreen-exit svg{width:17px;height:17px;fill:currentColor}.fullscreen-exit{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));opacity:0;transform:translateY(-12px);pointer-events:none;transition:opacity 350ms cubic-bezier(.22,1,.36,1),transform 350ms cubic-bezier(.22,1,.36,1)}
-.top,.bottom,.pwa-install{position:relative;z-index:11}.visual-label,.stage-copy,.fullscreen-toggle{z-index:11}.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle{transition:opacity 350ms cubic-bezier(.22,1,.36,1),transform 350ms cubic-bezier(.22,1,.36,1)}body.visualizer-fullscreen{overflow:hidden}body.visualizer-fullscreen #art{position:fixed;inset:0;width:100vw;height:100dvh;z-index:10;background:var(--void)}body.visualizer-fullscreen .fullscreen-exit{position:fixed;z-index:12}body.visualizer-fullscreen .stage:after{opacity:0}body.visualizer-fullscreen .top{opacity:0;transform:translateY(-38px);pointer-events:none}body.visualizer-fullscreen .visual-label{opacity:0;transform:translateY(-28px);pointer-events:none}body.visualizer-fullscreen .stage-copy{opacity:0;transform:translate(-32px,32px);pointer-events:none}body.visualizer-fullscreen .bottom{opacity:0;transform:translateY(48px);pointer-events:none}body.visualizer-fullscreen .pwa-install{opacity:0;transform:translateY(42px);pointer-events:none}body.visualizer-fullscreen .fullscreen-toggle{opacity:0;transform:translate(28px,-28px);pointer-events:none}body.visualizer-fullscreen .fullscreen-exit{opacity:1;transform:none;pointer-events:auto}
+.top,.bottom,.pwa-install{position:relative;z-index:11}.visual-label,.stage-copy,.fullscreen-toggle{z-index:11}.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle{transition:opacity 350ms cubic-bezier(.22,1,.36,1),transform 350ms cubic-bezier(.22,1,.36,1)}body.visualizer-fullscreen{overflow:hidden}body.visualizer-fullscreen #art{position:fixed;inset:0;width:100vw;height:100dvh;z-index:10;background:var(--void);touch-action:none}body.visualizer-fullscreen .fullscreen-exit{position:fixed;z-index:12}body.visualizer-fullscreen .stage:after{opacity:0}body.visualizer-fullscreen .top{opacity:0;transform:translateY(-38px);pointer-events:none}body.visualizer-fullscreen .visual-label{opacity:0;transform:translateY(-28px);pointer-events:none}body.visualizer-fullscreen .stage-copy{opacity:0;transform:translate(-32px,32px);pointer-events:none}body.visualizer-fullscreen .bottom{opacity:0;transform:translateY(48px);pointer-events:none}body.visualizer-fullscreen .pwa-install{opacity:0;transform:translateY(42px);pointer-events:none}body.visualizer-fullscreen .fullscreen-toggle{opacity:0;transform:translate(28px,-28px);pointer-events:none}body.visualizer-fullscreen .fullscreen-exit{opacity:1;transform:none;pointer-events:auto}
 @media(prefers-reduced-motion:reduce){.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle,.fullscreen-exit{transition:none!important}body.visualizer-fullscreen .top,body.visualizer-fullscreen .visual-label,body.visualizer-fullscreen .stage-copy,body.visualizer-fullscreen .bottom,body.visualizer-fullscreen .pwa-install,body.visualizer-fullscreen .fullscreen-toggle{transform:none}}
 </style>
 </head>
@@ -71,18 +71,21 @@ toggle.addEventListener('click',enter);exit.addEventListener('click',leave);docu
 </script>
 <script>
 const canvas=document.querySelector('#art'),ctx=canvas.getContext('2d'),audio=document.querySelector('#audio'),file=document.querySelector('#audioFile'),play=document.querySelector('#play'),seek=document.querySelector('#seek'),state=document.querySelector('#state'),welcome=document.querySelector('#welcome');
-window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh'].includes(value))return;if(scene!==value)resetDub();scene=value;document.querySelector('#scene').value=value};
+window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh'].includes(value)||scene===value)return;const animate=document.body.classList.contains('visualizer-fullscreen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&canvas.width&&canvas.height;if(animate){if(!transitionOld){transitionOld=document.createElement('canvas');transitionNew=document.createElement('canvas');}for(const layer of [transitionOld,transitionNew]){layer.width=canvas.width;layer.height=canvas.height;}transitionOld.getContext('2d').drawImage(canvas,0,0);sceneTransition={start:performance.now(),source:visualSource(),position:window.__sonoraNative?.mode==='apple'?window.__sonoraNative.timeline.position:audio.currentTime};}else sceneTransition=null;resetDub(false);scene=value;document.querySelector('#scene').value=value};
 function setPlayIcon(paused){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',paused?'M8 5v14l11-7z':'M6 5h4v14H6zm8 0h4v14h-4z');svg.append(path);play.replaceChildren(svg)}
 let analyser,data,phase=0,scene='bloom',loaded=false,level=0,beat=0,lastFrame=0,objectURL;
+let sceneTransition=null,transitionOld,transitionNew,swipeStart=null;
 let dubFeedback,dubHistory=[],dubLast=null,dubTransient=0,dubPrevious=0,dubHit=-Infinity,dubStill=false;
-function resetDub(){moshLast=null;moshKey=0;moshGate=false;moshBandLevel=0;moshTriggerTime=-Infinity;moshEnergy=0;moshBurst=0;moshHit=-Infinity;dubHistory.length=0;dubLast=null;dubTransient=0;dubPrevious=0;dubHit=-Infinity;ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);if(dubFeedback)dubFeedback.getContext('2d').clearRect(0,0,dubFeedback.width,dubFeedback.height)}
+function resetDub(clear=true){if(clear)sceneTransition=null;moshLast=null;moshKey=0;moshGate=false;moshBandLevel=0;moshTriggerTime=-Infinity;moshEnergy=0;moshBurst=0;moshHit=-Infinity;dubHistory.length=0;dubLast=null;dubTransient=0;dubPrevious=0;dubHit=-Infinity;if(clear)ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);if(dubFeedback)dubFeedback.getContext('2d').clearRect(0,0,dubFeedback.width,dubFeedback.height)}
 const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
-function resize(){const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);resetDub()}
+function resize(){sceneTransition=null;swipeStart=null;const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);resetDub()}
 new ResizeObserver(resize).observe(canvas);
 function setupAudio(){if(analyser)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC){state.textContent='WEB AUDIO IS NOT AVAILABLE';return}const ac=new AC(),source=ac.createMediaElementSource(audio);analyser=ac.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.78;source.connect(analyser);analyser.connect(ac.destination);data=new Uint8Array(analyser.frequencyBinCount)}
+function visualSource(){const native=window.__sonoraNative;return native?`${native.mode}:${native.generation}:${native.timeline?.track||''}`:(audio.src||'idle');}
 function band(from,to){let sum=0;for(let i=from;i<to;i++)sum+=data[i];return sum/((to-from)*255)}
 function draw(now=0){requestAnimationFrame(draw);const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;const dt=Math.min((now-lastFrame)/16.67||1,2);lastFrame=now;if(scene!=='dub'&&scene!=='datamosh')ctx.clearRect(0,0,w,h);
-const native=window.__sonoraNative,nativeOn=native&&(native.mode==='microphone'||native.mode==='apple');if(native?.mode==='spotify'||(window.__sonoraShell&&!nativeOn)){if(scene==='dub'||scene==='datamosh')resetDub();return;}
+const native=window.__sonoraNative,nativeOn=native&&(native.mode==='microphone'||native.mode==='apple');if(native?.mode==='spotify'||(window.__sonoraShell&&!nativeOn)){sceneTransition=null;if(scene==='dub'||scene==='datamosh')resetDub();return;}
+if(sceneTransition){const position=native?.mode==='apple'?native.timeline.position:audio.currentTime;if(sceneTransition.source!==visualSource()||position<sceneTransition.position-.1||position>sceneTransition.position+2)sceneTransition=null;else sceneTransition.position=position;}
 if(analyser)analyser.getByteFrequencyData(data);let bass=nativeOn?native.bands[0]:(data?band(1,14):0),mids=nativeOn?native.bands[1]:(data?band(14,92):0),highs=nativeOn?native.bands[2]:(data?band(92,240):0),rms=nativeOn?native.rms:0;
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(nativeOn&&native.mode==='apple'){
@@ -107,6 +110,7 @@ if(scene==='bloom'){
   // Horizontal contour strata cover the entire field instead of another radial variation.
   for(let row=0;row<31;row++){const y=h*(.11+row*.026),amp=h*(.03+level*.13),bend=Math.sin(row*.32+phase)*amp;ctx.beginPath();ctx.moveTo(0,h);for(let i=0;i<=140;i++){const x=i/140*w,t=i/140,edge=Math.sin(t*Math.PI),wave=Math.sin(t*11+phase*1.4+row*.21)*amp*.34+Math.sin(t*23-phase+row*.35)*highs*amp*.5;ctx.lineTo(x,y+bend*edge+wave*edge+Math.sin(t*4+row*.13)*mids*h*.12)}ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle=`hsla(${row<13?178+row*3:18+row*3},${row<13?57:75}%,${row<13?24:48}%,${.065+row*.002})`;ctx.fill();ctx.strokeStyle=`hsla(${row<13?169:22+row*2},80%,75%,${.1+row*.012})`;ctx.lineWidth=row%5===0?1.5:.7;ctx.stroke()}
 }
+if(sceneTransition)blendScene(now,w,h,bass);
 }
 // Dub keeps a single feedback canvas and sampled geometry, never a growing stack of bitmaps.
 function drawDub(now,w,h,cx,cy,R,bass,mids,highs,still,apple){
@@ -117,7 +121,7 @@ function drawDub(now,w,h,cx,cy,R,bass,mids,highs,still,apple){
   const elapsed=dubLast?Math.max(0,now-dubLast.now):16.67;
   dubLast={source,position,now};dubStill=still;
   // A paused playback-position instrument stays still; it is not analyzed audio.
-  if(apple&&!still&&native.timeline.playing===false&&dubHistory.length)return;
+  if(apple&&!still&&native.timeline.playing===false&&dubHistory.length){if(sceneTransition){ctx.clearRect(0,0,w,h);ctx.drawImage(dubFeedback,0,0,dubFeedback.width,dubFeedback.height,0,0,w,h);}return;}
   if(!dubFeedback){dubFeedback=document.createElement('canvas');}
   if(dubFeedback.width!==canvas.width||dubFeedback.height!==canvas.height){dubFeedback.width=canvas.width;dubFeedback.height=canvas.height;}
   const feedback=dubFeedback.getContext('2d');
@@ -167,7 +171,7 @@ function drawDatamosh(now,w,h,bass,mids,highs,still,apple){
   const native=window.__sonoraNative,source=native?`${native.mode}:${native.generation}:${native.timeline?.track||''}`:(audio.src||'idle');
   const position=apple?native.timeline.position:audio.currentTime;
   if(moshLast&&(source!==moshLast.source||still!==moshLast.still||position<moshLast.position-.1||position>moshLast.position+2))resetDub();
-  if(moshLast&&apple&&!still&&!native.timeline.playing&&position===moshLast.position)return;
+  if(moshLast&&apple&&!still&&!native.timeline.playing&&position===moshLast.position){if(sceneTransition){ctx.clearRect(0,0,w,h);ctx.drawImage(dubFeedback,0,0,dubFeedback.width,dubFeedback.height,0,0,w,h);}return;}
   const elapsed=moshLast?Math.min(80,Math.max(0,now-moshLast.now)):16.67;
   const fresh=!moshLast;moshLast={source,position,still,now};
   // ponytail: one shared previous-frame canvas, bounded 28x36 block field; use GPU advection only if measured fill-rate warrants it.
@@ -230,8 +234,40 @@ function drawDatamosh(now,w,h,bass,mids,highs,still,apple){
   }
   ctx.restore();feedback.clearRect(0,0,dubFeedback.width,dubFeedback.height);feedback.drawImage(canvas,0,0);
 }
+// Keep two bounded frames: the visible outgoing image and the current incoming drawing.
+function blendScene(now,w,h,bass){
+  if(!document.body.classList.contains('visualizer-fullscreen')||matchMedia('(prefers-reduced-motion: reduce)').matches){sceneTransition=null;return;}
+  const p=Math.max(0,Math.min(1,(now-sceneTransition.start)/5000));
+  if(p>=1){sceneTransition=null;return;}
+  const incoming=transitionNew.getContext('2d');incoming.clearRect(0,0,transitionNew.width,transitionNew.height);incoming.drawImage(canvas,0,0);
+  const fade=p*p*(3-2*p),dpr=canvas.width/w;
+  ctx.clearRect(0,0,w,h);ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=1-fade;
+  // Frozen prediction blocks slide away while the new live pattern slowly resolves.
+  const cols=24,rows=Math.min(32,Math.max(8,Math.round(cols*h/w))),bw=w/cols,bh=h/rows;
+  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+    const strength=Math.sin(p*Math.PI)*(10+bass*25);
+    const sx=Math.max(0,Math.min(w-bw,x*bw+Math.sin(y*.41+p*5)*strength));
+    const sy=Math.max(0,Math.min(h-bh,y*bh+Math.cos(x*.31-p*4)*strength*.35));
+    ctx.drawImage(transitionOld,sx*dpr,sy*dpr,bw*dpr,bh*dpr,x*bw,y*bh,bw+.5,bh+.5);
+  }
+  ctx.globalCompositeOperation='lighter';ctx.globalAlpha=fade;ctx.imageSmoothingEnabled=true;ctx.drawImage(transitionNew,0,0,transitionNew.width,transitionNew.height,0,0,w,h);ctx.restore();
+}
+function stepScene(direction){const options=[...document.querySelector('#scene').options].map(option=>option.value),index=options.indexOf(scene);window.SONORA.setStyle(options[(index+direction+options.length)%options.length]);}
+canvas.addEventListener('pointerdown',event=>{
+  if(!document.body.classList.contains('visualizer-fullscreen')||!event.isPrimary||event.button!==0){swipeStart=null;return;}
+  swipeStart={id:event.pointerId,x:event.clientX,y:event.clientY,time:performance.now()};canvas.setPointerCapture?.(event.pointerId);
+});
+canvas.addEventListener('pointerup',event=>{
+  const start=swipeStart;swipeStart=null;
+  if(!start||event.pointerId!==start.id||!document.body.classList.contains('visualizer-fullscreen'))return;
+  const dx=event.clientX-start.x,dy=event.clientY-start.y;
+  if(performance.now()-start.time>1200||Math.abs(dx)<Math.max(50,canvas.clientWidth*.08)||Math.abs(dx)<Math.abs(dy)*1.5)return;
+  stepScene(dx<0?1:-1);
+});
+canvas.addEventListener('pointercancel',()=>{swipeStart=null;});
+document.addEventListener?.('keydown',event=>{if(!document.body.classList.contains('visualizer-fullscreen')||event.ctrlKey||event.metaKey||event.altKey||event.repeat)return;if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();stepScene(event.key==='ArrowRight'?1:-1);}});
 draw();
-function loadTrack(src,title,description){resetDub();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=undefined;}audio.src=src;audio.load();loaded=true;document.querySelector('#trackName').textContent=title;document.querySelector('#trackSub').textContent=description;welcome.hidden=true;state.textContent='READY';for(const el of [play,seek,document.querySelector('#back'),document.querySelector('#forward')])el.disabled=false;}
+function loadTrack(src,title,description){sceneTransition=null;resetDub();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=undefined;}audio.src=src;audio.load();loaded=true;document.querySelector('#trackName').textContent=title;document.querySelector('#trackSub').textContent=description;welcome.hidden=true;state.textContent='READY';for(const el of [play,seek,document.querySelector('#back'),document.querySelector('#forward')])el.disabled=false;}
 file.addEventListener('change',()=>{const f=file.files?.[0];if(!f)return;const url=URL.createObjectURL(f);loadTrack(url,f.name.replace(/\.[^.]+$/,''),'Ready to play · audio remains on this device');objectURL=url;});
 async function startPlayback(){try{setupAudio();if(!analyser)return;await analyser.context.resume();await audio.play();}catch(_){state.textContent='COULDN’T START PLAYBACK';document.querySelector('#trackSub').textContent='Press Play to retry, or choose another audio file.';}}
 // The sample is fetched only after a click; it is not part of the offline shell cache.
@@ -239,7 +275,7 @@ document.querySelector('#sampleTrack').addEventListener('click',()=>{loadTrack('
 play.addEventListener('click',()=>{if(audio.paused)startPlayback();else audio.pause()});
 audio.addEventListener('play',()=>{play.setAttribute('aria-label','Pause');setPlayIcon(false);state.textContent='NOW PLAYING'});audio.addEventListener('pause',()=>{play.setAttribute('aria-label','Play');setPlayIcon(true);if(loaded&&audio.currentTime<audio.duration)state.textContent='PAUSED'});audio.addEventListener('ended',()=>{play.setAttribute('aria-label','Play');setPlayIcon(true);state.textContent='TRACK ENDED'});
 audio.addEventListener('loadedmetadata',()=>{document.querySelector('#duration').textContent=fmt(audio.duration);seek.disabled=false});audio.addEventListener('timeupdate',()=>{document.querySelector('#current').textContent=fmt(audio.currentTime||0);if(!seek.matches(':active')&&audio.duration)seek.value=audio.currentTime/audio.duration*1000});seek.addEventListener('input',()=>{if(audio.duration)audio.currentTime=seek.value/1000*audio.duration});document.querySelector('#back').addEventListener('click',()=>{audio.currentTime=0});document.querySelector('#forward').addEventListener('click',()=>{audio.currentTime=Math.max(0,audio.duration-1)});document.querySelector('#scene').addEventListener('change',e=>window.SONORA.setStyle(e.target.value));
-audio.addEventListener('seeking',()=>{if(scene==='dub'||scene==='datamosh')resetDub()});
+audio.addEventListener('seeking',()=>{sceneTransition=null;if(scene==='dub'||scene==='datamosh')resetDub()});
 audio.addEventListener('error',()=>{state.textContent='COULDN’T READ THIS AUDIO FILE';document.querySelector('#trackSub').textContent='Try another common audio format.'});
 </script>
 </body>

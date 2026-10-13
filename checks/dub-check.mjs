@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
-let clears=0,images=0,strokes=0,reduced=false,resize;const copies=[];
+let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];
 const ctx=new Proxy({clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;}}, {get:(o,k)=>k in o?o[k]:()=>{}});
 const nodes=new Map();
 function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
-const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>false}}};
-const sandbox={document,SONORA:{},requestAnimationFrame:()=>{},ResizeObserver:class{constructor(f){resize=f}observe(){}},matchMedia:()=>({matches:reduced}),devicePixelRatio:1,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Math};sandbox.window=sandbox;
+const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>fullscreen}}};
+const sandbox={document,SONORA:{},requestAnimationFrame:()=>{},ResizeObserver:class{constructor(f){resize=f}observe(){}},matchMedia:()=>({matches:reduced}),devicePixelRatio:1,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Math,performance:{now:()=>clock}};sandbox.window=sandbox;
 vm.createContext(sandbox);
 const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
-vm.runInContext(code+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime});this.frame=draw;`,sandbox);
+vm.runInContext(code+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;`,sandbox);
 const set=sandbox.SONORA.setStyle;
 set('dub');assert.equal(sandbox.probe().scene,'dub');
 sandbox.__sonoraNative={mode:'microphone',generation:1,bands:[.8,.5,.7],rms:.6,timeline:{position:0,track:''}};
@@ -63,4 +63,32 @@ for(const [rate,inside,outside] of [[48000,3,20],[44100,3,20]]){
   vm.runInContext('data.fill(255,1,6)',sandbox);sandbox.frame(16800);assert.equal(sandbox.probe().key,16800);
 }
 set('tide');set('datamosh');sandbox.__sonoraNative={mode:'apple',generation:9,bands:[.9,0,0],rms:0,timeline:{playing:true,position:5,track:'no-spectrum'}};sandbox.frame(17000);const appleKey=sandbox.probe().key;sandbox.__sonoraNative.timeline.position=6;sandbox.frame(20000);assert.equal(sandbox.probe().key,appleKey,'procedural Apple bass is not a frequency trigger');
-console.log('PASS: Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
+// Fullscreen gesture arbitration and long composited transitions use the shared style path.
+nodes.get('#scene').options=['bloom','orbit','tide','dub','datamosh'].map(value=>({value}));
+sandbox.__sonoraNative=null;set('bloom');
+const art=nodes.get('#art');
+const down=(x,y,id=1)=>art.listeners.pointerdown({isPrimary:true,button:0,pointerId:id,clientX:x,clientY:y});
+const up=(x,y,id=1)=>art.listeners.pointerup({pointerId:id,clientX:x,clientY:y});
+down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'bloom','nonfullscreen swipe must be ignored');
+fullscreen=true;clock=21000;down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'orbit');assert.equal(sandbox.probe().transition.start,21000);
+copies.length=0;sandbox.frame(23500);assert(sandbox.probe().transition&&copies.some(a=>a.length===9),'5 second fade must contain outgoing block sampling at midpoint');
+clock=23500;down(100,200);up(500,200);assert.equal(sandbox.probe().scene,'bloom');assert.equal(sandbox.probe().transition.start,23500,'rapid reverse must rebase on current visible frame');
+down(500,100);up(450,400);assert.equal(sandbox.probe().scene,'bloom','vertical gesture must not change pattern');
+down(500,200);up(480,200);assert.equal(sandbox.probe().scene,'bloom','tap/short drag must be ignored');
+down(500,200);art.listeners.pointercancel();up(100,200);assert.equal(sandbox.probe().scene,'bloom');
+down(100,200);up(500,200);assert.equal(sandbox.probe().scene,'datamosh','previous wraps to last pattern');
+sandbox.frame(28501);assert.equal(sandbox.probe().transition,null,'fade must finish');
+clock=29000;down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'bloom','next wraps to first pattern');
+resize();assert.equal(sandbox.probe().transition,null,'resize cancels stale-sized frames');
+reduced=true;clock=30000;down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'orbit');assert.equal(sandbox.probe().transition,null,'reduced motion switches without glitch/fade');
+reduced=false;clock=31000;set('tide');fullscreen=false;sandbox.frame(31016);assert.equal(sandbox.probe().transition,null,'exit fullscreen cancels transition');
+fullscreen=true;reduced=false;
+for(const style of ['bloom','orbit','tide']){
+  sandbox.__sonoraNative={mode:'apple',generation:20,bands:[0,0,0],rms:0,timeline:{playing:true,position:5,track:'one'}};
+  set('dub');clock=32000;set(style);assert(sandbox.probe().transition);
+  sandbox.__sonoraNative.generation=21;sandbox.frame(32016);assert.equal(sandbox.probe().transition,null,style+' must cancel on native source generation');
+  set('dub');clock=33000;set(style);sandbox.__sonoraNative.timeline.track='two';sandbox.frame(33016);assert.equal(sandbox.probe().transition,null,style+' must cancel on track change');
+  set('dub');clock=34000;set(style);sandbox.__sonoraNative.timeline.position=30;sandbox.frame(34016);assert.equal(sandbox.probe().transition,null,style+' must cancel on native seek');
+  set('dub');clock=35000;set(style);nodes.get('#audio').listeners.seeking();assert.equal(sandbox.probe().transition,null,style+' must cancel on browser seek');
+}
+console.log('PASS: all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s block-mosh fade, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
