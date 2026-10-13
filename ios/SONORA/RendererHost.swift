@@ -76,7 +76,7 @@ final class RendererController: UIViewController, WKNavigationDelegate {
 
   func setSensitivity(_ value: Double) { audio.setSensitivity(value) }
   func setStyle(_ value: String) {
-    guard ["bloom", "orbit", "tide", "dub", "datamosh"].contains(value) else { return }
+    guard ["bloom", "orbit", "tide", "dub", "datamosh", "cymatic"].contains(value) else { return }
     style = value
     if pageReady { web.callAsyncJavaScript("window.SONORA.setStyle(style)", arguments: ["style": style], in: nil, in: .page) { _ in } }
   }

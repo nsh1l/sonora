@@ -53,7 +53,7 @@
 <button class="icon-btn play" id="play" aria-label="Play" disabled><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
 <button class="icon-btn" id="forward" aria-label="Skip to end" disabled><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM5 6v12l10-6z"/></svg></button>
 </div><label class="seek"><span id="current">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" disabled><span id="duration">0:00</span></label></div>
-<div class="tools"><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option></select></div><div class="hint">Local files stay on-device.<br>Sample streams online.</div></div>
+<div class="tools"><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option><option value="cymatic">Cymatic</option></select></div><div class="hint">Local files stay on-device.<br>Sample streams online.</div></div>
 </footer>
 </main>
 <aside class="pwa-install" aria-label="Install SONORA"><button id="installApp" hidden>Install SONORA</button><span id="installHint" role="status">iPhone: Share → Add to Home Screen · Offline files must be selected again after reopening.</span></aside>
@@ -71,7 +71,7 @@ toggle.addEventListener('click',enter);exit.addEventListener('click',leave);docu
 </script>
 <script>
 const canvas=document.querySelector('#art'),ctx=canvas.getContext('2d'),audio=document.querySelector('#audio'),file=document.querySelector('#audioFile'),play=document.querySelector('#play'),seek=document.querySelector('#seek'),state=document.querySelector('#state'),welcome=document.querySelector('#welcome');
-window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh'].includes(value)||scene===value)return;const animate=document.body.classList.contains('visualizer-fullscreen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&canvas.width&&canvas.height;if(animate){if(!transitionOld){transitionOld=document.createElement('canvas');transitionNew=document.createElement('canvas');}for(const layer of [transitionOld,transitionNew]){layer.width=canvas.width;layer.height=canvas.height;}transitionOld.getContext('2d').drawImage(canvas,0,0);sceneTransition={start:performance.now(),source:visualSource(),position:window.__sonoraNative?.mode==='apple'?window.__sonoraNative.timeline.position:audio.currentTime};}else sceneTransition=null;resetDub(false);scene=value;document.querySelector('#scene').value=value};
+window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh','cymatic'].includes(value)||scene===value)return;const animate=document.body.classList.contains('visualizer-fullscreen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&canvas.width&&canvas.height;if(animate){if(!transitionOld){transitionOld=document.createElement('canvas');transitionNew=document.createElement('canvas');}for(const layer of [transitionOld,transitionNew]){layer.width=canvas.width;layer.height=canvas.height;}transitionOld.getContext('2d').drawImage(canvas,0,0);sceneTransition={start:performance.now(),source:visualSource(),position:window.__sonoraNative?.mode==='apple'?window.__sonoraNative.timeline.position:audio.currentTime};}else sceneTransition=null;resetDub(false);scene=value;document.querySelector('#scene').value=value};
 function setPlayIcon(paused){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',paused?'M8 5v14l11-7z':'M6 5h4v14H6zm8 0h4v14h-4z');svg.append(path);play.replaceChildren(svg)}
 let analyser,data,phase=0,scene='bloom',loaded=false,level=0,beat=0,lastFrame=0,objectURL;
 let sceneTransition=null,transitionOld,transitionNew,swipeStart=null;
@@ -102,6 +102,23 @@ if(scene==='bloom'){
   // A woven field of Lissajous trajectories; the mid band changes their orbit ratio.
   for(let ribbon=0;ribbon<15;ribbon++){const shift=ribbon*.095,scale=R*(.76+ribbon*.025)*pulse;ctx.beginPath();for(let i=0;i<=420;i++){const t=i/420*Math.PI*2,x=cx+Math.sin(t*(2+mids*.3)+phase+shift)*scale*1.16,y=cy+Math.sin(t*3-phase*.75+shift*2)*scale*.66; i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.strokeStyle=`hsla(${ribbon%3===0?17:175+ribbon*3},80%,${ribbon%3===0?71:76}%,${.18+ribbon*.022})`;ctx.lineWidth=ribbon%3===0?2.2:1;ctx.stroke()}
   for(let n=0;n<22;n++){const t=n*Math.PI*2/22+phase*.26,r=R*(.8+highs*.22);ctx.beginPath();ctx.arc(cx+Math.sin(2*t+phase)*r*1.16,cy+Math.sin(3*t-phase*.75)*r*.66,1.2+highs*3,0,Math.PI*2);ctx.fillStyle=n%4?'#b6f5d4':'#ff917b';ctx.fill()}
+ }else if(scene==='cymatic'){
+  // Cymatic: nodal powder / spectral misregistration, not a physical plate simulation.
+  // ponytail: fixed 96x96 field; raise resolution only after profiling, no particle histories.
+  const size=Math.min(w*.78,h*.82),step=size/96,m=3+bass*4,n=5+mids*6;
+  const t=still?0:phase,warp=Math.sin(t*.41)*.55,threshold=.14+bass*.18;
+  const cm=[],cn=[];for(let i=0;i<96;i++){const u=(i+.5)/96;cm.push(Math.cos(m*Math.PI*u));cn.push(Math.cos(n*Math.PI*u));}
+  ctx.save();ctx.translate(w<760?w*.5:cx,cy);ctx.rotate(.12+Math.sin(t*.23)*.09);ctx.globalCompositeOperation='lighter';
+  for(let y=0;y<96;y++)for(let x=0;x<96;x++){
+    const field=cm[x]*cn[y]-cn[x]*cm[y]+warp*(cn[x]*cn[y]-cm[x]*cm[y]);
+    const density=Math.max(0,1-Math.abs(field)/threshold);if(!density)continue;
+    const grain=((x*73+y*151+x*y*13)%97)/97,grainSize=step*(.18+density*.62);
+    const px=(x-47.5)*step+(grain-.5)*step*.65,py=(y-47.5)*step;
+    ctx.globalAlpha=(.2+density*.7)*(.55+grain*.45);
+    ctx.fillStyle='#347fff';ctx.fillRect(px+step*(.8+highs*2.4),py-step*.4,grainSize,grainSize);
+    ctx.fillStyle=field>0?'#ff573f':'#f4ead3';ctx.fillRect(px,py,grainSize,grainSize);
+  }
+  ctx.restore();
 }else if(scene==='datamosh'){
   drawDatamosh(now,w,h,bass,mids,highs,still,nativeOn&&native.mode==='apple');
 }else if(scene==='dub'){
