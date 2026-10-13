@@ -2,7 +2,9 @@
 
 SONORA is an original generative visual instrument. The browser prototype still accepts a local audio file and processes it locally; no upload is involved.
 
-**Try it:** https://sonora-viz.pages.dev/
+**Try it:** https://sonora.alwaysyesterday.party/
+
+Cloudflare Pages fallback: https://sonora-viz.pages.dev/
 
 ## Why SONORA?
 
