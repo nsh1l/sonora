@@ -22,6 +22,10 @@ Open `http://localhost:4178`, choose an audio file, and use the Bloom, Orbit, Ti
 
 Dub adds thick luminous ribbons, feedback trails, three delayed geometry taps (180/360/540 ms), bass-driven glow, and transient color separation. No full-screen strobe is used. Reduced motion disables feedback movement and transient color separation. Apple Music remains playback-position art, not audio analysis.
 
+## Sample track
+
+Click **So1loh — September 14** to start the full track without choosing a file. The source is `September 14.wav` from the external HDD Published directory; the original is untouched. The web copy is stereo MP3 at 192 kbps, encoded without source metadata. It streams from the same origin only after a click and is excluded from the PWA offline shell cache. Local files still remain on-device. The sample button is browser-only, not included in the native iPhone source UI.
+
 ## PWA
 
 On HTTPS (or localhost), install SONORA from the browser's install UI; on iPhone/iPad use Share → Add to Home Screen. The app shell is precached for offline reopening, including an offline in-scope navigation, but selected local audio is never cached and must be chosen again after reopening. It also does not make remote audio, API requests, query URLs, or POST requests available offline.

@@ -33,7 +33,7 @@ class Element {
   fire(name){for(const fn of this.listeners[name]??[])fn({target:this});}
   replaceChildren(){} setAttribute(){} matches(){return false;}
 }
-const elements=new Map(['art','audio','audioFile','play','seek','state','welcome','trackName','trackSub','back','forward','duration','current','scene'].map(id=>[id,new Element()]));
+const elements=new Map(['art','audio','audioFile','play','seek','state','welcome','trackName','trackSub','back','forward','duration','current','scene','sampleTrack'].map(id=>[id,new Element()]));
 const traces=[]; const canvas=elements.get('art');
 const context={clearRect(){},setTransform(){},beginPath(){},moveTo(x,y){traces.push([x,y]);},lineTo(x,y){traces.push([x,y]);},closePath(){},fill(){},stroke(){},quadraticCurveTo(){},arc(){}};
 canvas.getContext=()=>context;canvas.getBoundingClientRect=()=>({width:300,height:200});canvas.clientWidth=300;canvas.clientHeight=200;
@@ -41,6 +41,7 @@ const audio=elements.get('audio');Object.assign(audio,{paused:true,currentTime:0
 const bodyClasses=new Set();globalThis.document={body:{classList:{contains:n=>bodyClasses.has(n),toggle:(n,on)=>on?bodyClasses.add(n):bodyClasses.delete(n)}},querySelector:s=>elements.get(s.slice(1)),createElementNS:()=>new Element()};
 globalThis.ResizeObserver=class{observe(){}};globalThis.requestAnimationFrame=()=>0;globalThis.devicePixelRatio=1;globalThis.__sonoraReducedMotion=false;globalThis.matchMedia=()=>({matches:globalThis.__sonoraReducedMotion});
 globalThis.URL.createObjectURL=()=>'blob:track';globalThis.URL.revokeObjectURL=()=>{};
+let resumes=0;globalThis.AudioContext=class{constructor(){this.destination={};}createMediaElementSource(){return {connect(){}}}createAnalyser(){return {context:this,frequencyBinCount:512,connect(){},getByteFrequencyData(){}}}async resume(){resumes++;}};
 const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
 const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];if(!scripts.length)throw Error('inline browser renderer missing');
 eval(scripts.at(-1)[1]+'\nglobalThis.__sonoraTestDraw=draw;');
@@ -56,4 +57,11 @@ traces.length=0;SONORA.setPayload(valid('apple',3,{timeline:{playing:true,positi
 if(JSON.stringify(traces.slice(0,30))!==reduced)throw Error('reduced-motion preference did not freeze Apple timeline art');
 traces.length=0;SONORA.setPayload({mode:'spotify',generation:4});__sonoraTestDraw(96);
 if(traces.length)throw Error('Spotify mode rendered a visualization');
-console.log('PASS: native bridge validation, source isolation, permission errors, Apple timeline drawing, reduced motion, and browser local-file flow');
+// A sample click shares transport/analyser with local files and reports playback rejection.
+elements.get('sampleTrack').fire('click');await new Promise(r=>setTimeout(r,0));
+if(audio.src!=='/samples/september-14.mp3'||audio.paused||resumes!==1||elements.get('trackName').textContent!=='So1loh — September 14')throw Error('sample click did not start shared playback');
+let revoked=0;URL.revokeObjectURL=()=>revoked++;picker.fire('change');elements.get('sampleTrack').fire('click');await new Promise(r=>setTimeout(r,0));
+if(revoked!==1)throw Error('local blob URL was not released on source switches');
+audio.play=async()=>{throw Error('blocked')};elements.get('sampleTrack').fire('click');await new Promise(r=>setTimeout(r,0));
+if(elements.get('state').textContent!=='COULDN’T START PLAYBACK')throw Error('playback rejection was hidden');
+console.log('PASS: sample one-click playback, shared analyser, source switching, playback errors; native bridge validation, source isolation, permission errors, Apple timeline drawing, reduced motion, and browser local-file flow');

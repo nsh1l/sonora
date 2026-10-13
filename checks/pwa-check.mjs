@@ -46,7 +46,7 @@ if (await offlineShell.text() !== 'precache:/index.html') throw Error('offline n
 const cachedScript = await dispatch('fetch', request('/pwa.mjs'));
 if (await cachedScript.text() !== 'precache:/pwa.mjs') throw Error('cached shell asset was not served');
 for (const ignored of [
-  request('/song.mp3'), request('/index.html?cache=1'), request('/api', {method: 'POST'}),
+  request('/song.mp3'), request('/samples/september-14.mp3'), request('/index.html?cache=1'), request('/api', {method: 'POST'}),
   request('https://elsewhere.test/index.html')
 ]) {
   const result = await dispatch('fetch', ignored);
