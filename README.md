@@ -20,6 +20,8 @@ bun server.mjs
 
 Open `http://localhost:4178`, choose an audio file, and use the Bloom, Orbit, Tide, Dub, or Datamosh renderer. Use the stage’s top-right fullscreen button for an immersive visualizer; Escape or its minimal exit button returns to the controls. The server exposes the PWA shell, manifest, worker, and icons with correct MIME types.
 
+Bloom is an asymmetric pigment monotype: overlapping organic color fields, torn edges, negative-space slits and print grain replace the former symmetric petals. Orbit is a kinetic assemblage of open weighted arcs, color plates, counterweights and tension lines rather than woven fine-line loops. Both reuse the existing audio bands and deterministic Apple timeline, with reduced motion preserving a still-phase composition.
+
 Dub adds thick luminous ribbons, feedback trails, three delayed geometry taps (180/360/540 ms), bass-driven glow, and transient color separation. No full-screen strobe is used. Reduced motion disables feedback movement and transient color separation. Apple Music remains playback-position art, not audio analysis.
 
 Datamosh is an original real-time Canvas2D P-frame-style reconstruction: a shared previous-frame buffer is displaced in bounded macroblocks, horizontal tears retain old image fragments, and periodic pigment islands rebuild the field. Bass drives vector displacement, mids bend the flow, and treble breaks up slices. It simulates datamoshing aesthetics; it does not corrupt or decode compressed video. Reduced motion shows a static pigment composition without feedback/advection. Apple Music stays playback-position art, and a paused Apple timeline holds its frame.

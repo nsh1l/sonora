@@ -34,8 +34,8 @@ class Element {
   replaceChildren(){} setAttribute(){} matches(){return false;}
 }
 const elements=new Map(['art','audio','audioFile','play','seek','state','welcome','trackName','trackSub','back','forward','duration','current','scene','sampleTrack'].map(id=>[id,new Element()]));
-const traces=[]; const canvas=elements.get('art');
-const context={clearRect(){},setTransform(){},beginPath(){},moveTo(x,y){traces.push([x,y]);},lineTo(x,y){traces.push([x,y]);},closePath(){},fill(){},stroke(){},quadraticCurveTo(){},arc(){}};
+const traces=[],paints=[]; const canvas=elements.get('art');
+const context={save(){},restore(){},translate(){},rotate(){},fillRect(){},clearRect(){},setTransform(){},beginPath(){},moveTo(x,y){traces.push([x,y]);},lineTo(x,y){traces.push([x,y]);},closePath(){},fill(){paints.push(["fill",this.globalCompositeOperation,this.fillStyle]);},stroke(){paints.push(["stroke",this.lineWidth]);},quadraticCurveTo(){},arc(){}};
 canvas.getContext=()=>context;canvas.getBoundingClientRect=()=>({width:300,height:200});canvas.clientWidth=300;canvas.clientHeight=200;
 const audio=elements.get('audio');Object.assign(audio,{paused:true,currentTime:0,duration:120,load(){},play:async()=>{audio.paused=false;audio.fire('play');}});
 const bodyClasses=new Set();globalThis.document={body:{classList:{contains:n=>bodyClasses.has(n),toggle:(n,on)=>on?bodyClasses.add(n):bodyClasses.delete(n)}},querySelector:s=>elements.get(s.slice(1)),createElementNS:()=>new Element()};
@@ -55,6 +55,19 @@ if(JSON.stringify(traces.slice(0,30))===paused)throw Error('Apple playback posit
 traces.length=0;globalThis.__sonoraReducedMotion=true;__sonoraTestDraw(64);const reduced=JSON.stringify(traces.slice(0,30));
 traces.length=0;SONORA.setPayload(valid('apple',3,{timeline:{playing:true,position:18,duration:120,track:'a'}}));__sonoraTestDraw(80);
 if(JSON.stringify(traces.slice(0,30))!==reduced)throw Error('reduced-motion preference did not freeze Apple timeline art');
+// Both overwritten instruments retain deterministic timeline/reduced-motion behavior and painted mass.
+for(const style of ['bloom','orbit']){
+  SONORA.setStyle(style);globalThis.__sonoraReducedMotion=false;
+  globalThis.__sonoraNative=valid('apple',3,{timeline:{playing:false,position:5,duration:120,track:'art-check'}});
+  traces.length=0;paints.length=0;__sonoraTestDraw(81);const first=JSON.stringify(traces);
+  if(!traces.length||!traces.every(point=>point.every(Number.isFinite)))throw Error(style+' has invalid geometry');
+  if(style==='bloom'&&!paints.some(p=>p[0]==='fill'&&p[1]==='destination-out'))throw Error('Bloom negative-space cuts missing');
+  if(style==='orbit'&&!paints.some(p=>p[0]==='stroke'&&p[1]>3))throw Error('Orbit sculptural arc mass missing');
+  traces.length=0;__sonoraTestDraw(82);if(JSON.stringify(traces)!==first)throw Error(style+' paused timeline drifted');
+  globalThis.__sonoraNative.timeline.position=12;traces.length=0;__sonoraTestDraw(83);if(JSON.stringify(traces)===first)throw Error(style+' ignores timeline');
+  globalThis.__sonoraReducedMotion=true;traces.length=0;__sonoraTestDraw(84);const stillArt=JSON.stringify(traces);
+  globalThis.__sonoraNative.timeline.position=18;traces.length=0;__sonoraTestDraw(85);if(JSON.stringify(traces)!==stillArt)throw Error(style+' reduced-motion drifted');
+}
 traces.length=0;SONORA.setPayload({mode:'spotify',generation:4});__sonoraTestDraw(96);
 if(traces.length)throw Error('Spotify mode rendered a visualization');
 // A sample click shares transport/analyser with local files and reports playback rejection.
