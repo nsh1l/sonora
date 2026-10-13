@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
-let clears=0,images=0,strokes=0,reduced=false,resize;
-const ctx=new Proxy({clearRect(){clears++;},drawImage(){images++;},stroke(){strokes++;}}, {get:(o,k)=>k in o?o[k]:()=>{}});
+let clears=0,images=0,strokes=0,reduced=false,resize;const copies=[];
+const ctx=new Proxy({clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;}}, {get:(o,k)=>k in o?o[k]:()=>{}});
 const nodes=new Map();
 function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
 const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>false}}};
 const sandbox={document,SONORA:{},requestAnimationFrame:()=>{},ResizeObserver:class{constructor(f){resize=f}observe(){}},matchMedia:()=>({matches:reduced}),devicePixelRatio:1,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Math};sandbox.window=sandbox;
 vm.createContext(sandbox);
 const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
-vm.runInContext(code+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now)});this.frame=draw;`,sandbox);
+vm.runInContext(code+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst});this.frame=draw;`,sandbox);
 const set=sandbox.SONORA.setStyle;
 set('dub');assert.equal(sandbox.probe().scene,'dub');
 sandbox.__sonoraNative={mode:'microphone',generation:1,bands:[.8,.5,.7],rms:.6,timeline:{position:0,track:''}};
@@ -29,4 +29,18 @@ for(const style of ['bloom','orbit','tide']){set(style);sandbox.frame(2000);asse
 assert(html.includes('<option value="dub">Dub</option>'));
 for(const path of ['ios/SONORA/SONORAApp.swift','ios/SONORA/RendererHost.swift'])assert((await Bun.file(new URL('../'+path,import.meta.url)).text()).includes('"dub"'));
 assert(clears>0);
-console.log('PASS: Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
+set('datamosh');sandbox.__sonoraNative={mode:'microphone',generation:5,bands:[.8,.5,.7],rms:.6,timeline:{position:0,track:''}};
+sandbox.frame(2100);copies.length=0;sandbox.frame(2117);
+const blocks=copies.filter(x=>x.length===9);assert(blocks.length>=224&&blocks.length<=1014,'bounded block advection required');
+assert(blocks.some(x=>x[1]!==x[5]||x[2]!==x[6]),'motion vectors must move previous-frame blocks');
+assert(blocks.every(x=>x.slice(1).every(Number.isFinite)),'block bounds must be finite');
+assert.equal(sandbox.probe().length,0,'Datamosh must not grow Dub history');
+set('tide');assert.equal(sandbox.probe().mosh,null);set('datamosh');sandbox.frame(2134);
+sandbox.__sonoraNative.generation=6;copies.length=0;sandbox.frame(2151);assert.equal(copies.filter(x=>x.length===9).length,0,'source change must clear old prediction data');
+resize();assert.equal(sandbox.probe().mosh,null);sandbox.frame(2168);
+reduced=true;copies.length=0;sandbox.frame(2185);assert.equal(copies.filter(x=>x.length===9).length,0,'reduced motion must disable advection and slice tears');assert.equal(sandbox.probe().burst,0);
+reduced=false;sandbox.__sonoraNative={mode:'apple',generation:7,bands:[0,0,0],rms:0,timeline:{playing:false,position:8,track:'c'}};sandbox.frame(2202);const beforePause=images;sandbox.frame(2219);assert.equal(images,beforePause,'paused Apple timeline must hold its frame');
+nodes.get('#audio').listeners.seeking();assert.equal(sandbox.probe().mosh,null);
+for(const path of ['ios/SONORA/SONORAApp.swift','ios/SONORA/RendererHost.swift'])assert((await Bun.file(new URL('../'+path,import.meta.url)).text()).includes('"datamosh"'));
+assert(html.includes('<option value="datamosh">Datamosh</option>'));
+console.log('PASS: Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
