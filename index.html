@@ -75,7 +75,7 @@ window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh'].i
 function setPlayIcon(paused){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',paused?'M8 5v14l11-7z':'M6 5h4v14H6zm8 0h4v14h-4z');svg.append(path);play.replaceChildren(svg)}
 let analyser,data,phase=0,scene='bloom',loaded=false,level=0,beat=0,lastFrame=0,objectURL;
 let dubFeedback,dubHistory=[],dubLast=null,dubTransient=0,dubPrevious=0,dubHit=-Infinity,dubStill=false;
-function resetDub(){moshLast=null;moshKey=0;moshEnergy=0;moshBurst=0;moshHit=-Infinity;dubHistory.length=0;dubLast=null;dubTransient=0;dubPrevious=0;dubHit=-Infinity;ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);if(dubFeedback)dubFeedback.getContext('2d').clearRect(0,0,dubFeedback.width,dubFeedback.height)}
+function resetDub(){moshLast=null;moshKey=0;moshGate=false;moshBandLevel=0;moshTriggerTime=-Infinity;moshEnergy=0;moshBurst=0;moshHit=-Infinity;dubHistory.length=0;dubLast=null;dubTransient=0;dubPrevious=0;dubHit=-Infinity;ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);if(dubFeedback)dubFeedback.getContext('2d').clearRect(0,0,dubFeedback.width,dubFeedback.height)}
 const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function resize(){const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);resetDub()}
 new ResizeObserver(resize).observe(canvas);
@@ -162,7 +162,7 @@ function drawDub(now,w,h,cx,cy,R,bass,mids,highs,still,apple){
   feedback.clearRect(0,0,dubFeedback.width,dubFeedback.height);feedback.drawImage(canvas,0,0);
 }
 // Datamosh is a live P-frame-style reconstruction, not corrupted video decoding.
-let moshLast=null,moshKey=0,moshEnergy=0,moshBurst=0,moshHit=-Infinity;
+let moshLast=null,moshKey=0,moshGate=false,moshBandLevel=0,moshTriggerTime=-Infinity,moshEnergy=0,moshBurst=0,moshHit=-Infinity;
 function drawDatamosh(now,w,h,bass,mids,highs,still,apple){
   const native=window.__sonoraNative,source=native?`${native.mode}:${native.generation}:${native.timeline?.track||''}`:(audio.src||'idle');
   const position=apple?native.timeline.position:audio.currentTime;
@@ -178,7 +178,7 @@ function drawDatamosh(now,w,h,bass,mids,highs,still,apple){
   moshBurst*=Math.exp(-elapsed/240);
   if(!still&&!apple&&energy-moshEnergy>.08&&now-moshHit>260){moshBurst=Math.min(1,(energy-moshEnergy)*4);moshHit=now;}moshEnergy=energy;
   ctx.save();ctx.globalCompositeOperation='source-over';ctx.imageSmoothingEnabled=false;
-  // Intra-frame islands periodically refresh a portion, never a white-screen strobe.
+  // A 40–250 Hz rising threshold refreshes pigment islands; held notes do not retrigger.
   const palette=['#172a2b','#dd5a44','#b6ca63','#59776d','#b59fbd'];
   if(fresh||still){ctx.fillStyle=palette[0];ctx.fillRect(0,0,w,h);moshKey=now;}
   else{
@@ -196,7 +196,23 @@ function drawDatamosh(now,w,h,bass,mids,highs,still,apple){
     ctx.globalAlpha=1;
   }
   // Collaged pigment planes provide material for the motion vectors to tear apart.
-  const refresh=fresh||still||now-moshKey>2400;
+  let triggerEnergy=0;
+  if(!apple){
+    if(native?.mode==='microphone')triggerEnergy=native.bands[0]; // Native bass is analyzed at 40–250 Hz.
+    else if(analyser&&data&&!audio.paused){
+      const binHz=analyser.context.sampleRate/analyser.fftSize;
+      const from=Math.max(1,Math.ceil(40/binHz)),to=Math.min(data.length,Math.floor(250/binHz)+1);
+      if(to>from)triggerEnergy=band(from,to);
+    }
+  }
+  // Follow the local spectral floor so mastered tracks need not fall nearly silent to rearm.
+  const rise=triggerEnergy-moshBandLevel;
+  const rising=triggerEnergy>=.12&&rise>=.035&&!moshGate;
+  if(rise<=.01||triggerEnergy<.12)moshGate=false;else if(rise>=.035)moshGate=true;
+  moshBandLevel+=(triggerEnergy-moshBandLevel)*(1-Math.exp(-elapsed/450));
+  const onset=!still&&!apple&&rising&&now-moshTriggerTime>=300;
+  if(onset)moshTriggerTime=now;
+  const refresh=fresh||still||onset;
   if(refresh){
     for(let i=0;i<7;i++){
       const x=w*(.12+i*.12+.07*Math.sin(i*3+t*.12)),y=h*(.18+.58*((i*3%7)/7));
@@ -204,9 +220,11 @@ function drawDatamosh(now,w,h,bass,mids,highs,still,apple){
       ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x+w*.18,y-h*.2,x-w*.08,y+h*.3,x+w*.19,y+h*.28);ctx.lineTo(x+w*.23,y+h*.06);ctx.closePath();ctx.fill();
     }moshKey=now;
   }
-  if(!still){
+  if(onset){
     ctx.globalAlpha=.07+highs*.08;ctx.fillStyle=palette[1+Math.floor((Math.sin(t*.16)+1)*1.49)];
     const x=w*(.5+.4*Math.sin(t*.13)),y=h*(.5+.35*Math.cos(t*.19));ctx.fillRect(x,y,w*(.04+bass*.09),h*.17);
+  }
+  if(!still){
     ctx.globalAlpha=.14;ctx.fillStyle='#d0cbbb';
     for(let i=0;i<14;i++){const x=(i*83+Math.floor(t*8)*19)%w,y=(i*37+Math.floor(t*4)*11)%h;ctx.fillRect(x,y,2+highs*9,1);}
   }
