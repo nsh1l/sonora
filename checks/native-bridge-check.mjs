@@ -55,14 +55,14 @@ if(JSON.stringify(traces.slice(0,30))===paused)throw Error('Apple playback posit
 traces.length=0;globalThis.__sonoraReducedMotion=true;__sonoraTestDraw(64);const reduced=JSON.stringify(traces.slice(0,30));
 traces.length=0;SONORA.setPayload(valid('apple',3,{timeline:{playing:true,position:18,duration:120,track:'a'}}));__sonoraTestDraw(80);
 if(JSON.stringify(traces.slice(0,30))!==reduced)throw Error('reduced-motion preference did not freeze Apple timeline art');
-// Both overwritten instruments retain deterministic timeline/reduced-motion behavior and painted mass.
+// Both geometric instruments retain deterministic timeline/reduced-motion behavior.
 for(const style of ['bloom','orbit']){
   SONORA.setStyle(style);globalThis.__sonoraReducedMotion=false;
   globalThis.__sonoraNative=valid('apple',3,{timeline:{playing:false,position:5,duration:120,track:'art-check'}});
   traces.length=0;paints.length=0;__sonoraTestDraw(81);const first=JSON.stringify(traces);
   if(!traces.length||!traces.every(point=>point.every(Number.isFinite)))throw Error(style+' has invalid geometry');
-  if(style==='bloom'&&!paints.some(p=>p[0]==='fill'&&p[1]==='destination-out'))throw Error('Bloom negative-space cuts missing');
-  if(style==='orbit'&&!paints.some(p=>p[0]==='stroke'&&p[1]>3))throw Error('Orbit sculptural arc mass missing');
+  if(style==='bloom'&&(traces.length<2000||paints.some(p=>p[0]==='fill'&&p[1]==='destination-out')))throw Error('Bloom layered geometric contours regressed');
+  if(style==='orbit'&&(traces.length<6000||paints.some(p=>p[0]==='stroke'&&p[1]>3)))throw Error('Orbit fine-line geometric trajectories regressed');
   traces.length=0;__sonoraTestDraw(82);if(JSON.stringify(traces)!==first)throw Error(style+' paused timeline drifted');
   globalThis.__sonoraNative.timeline.position=12;traces.length=0;__sonoraTestDraw(83);if(JSON.stringify(traces)===first)throw Error(style+' ignores timeline');
   globalThis.__sonoraReducedMotion=true;traces.length=0;__sonoraTestDraw(84);const stillArt=JSON.stringify(traces);
