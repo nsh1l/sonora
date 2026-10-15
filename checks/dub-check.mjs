@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
-let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let grains=null;
-const ctx=new Proxy({fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;}}, {get:(o,k)=>k in o?o[k]:()=>{}});
+let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let grains=null,dicePaint=null,path=[],mesh=[];
+const ctx=new Proxy({beginPath(){path=[];},moveTo(...xy){path.push(xy);},lineTo(...xy){path.push(xy);},fill(){if(dicePaint)dicePaint.push({path:path.slice(),ink:this.fillStyle});},fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;}}, {get:(o,k)=>k in o?o[k]:()=>{}});
 const nodes=new Map();
 function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
 const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>fullscreen}}};
 const sandbox={document,SONORA:{},requestAnimationFrame:()=>{},ResizeObserver:class{constructor(f){resize=f}observe(){}},matchMedia:()=>({matches:reduced}),devicePixelRatio:1,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Math,performance:{now:()=>clock}};sandbox.window=sandbox;
 vm.createContext(sandbox);
 const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
-vm.runInContext(code+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;`,sandbox);
+// Observe the real transient mesh without adding production debug state.
+const instrumented=code.replace('faces.sort((a,b)=>a.depth-b.depth);','faces.sort((a,b)=>a.depth-b.depth);globalThis.inspectDice(faces);');
+sandbox.inspectDice=faces=>{mesh=faces};
+vm.runInContext(instrumented+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;this.diceDefinitions={faces:diceFaces,pips:dicePips};this.diceFrame=drawDice;`,sandbox);
 const set=sandbox.SONORA.setStyle;
 set('dub');assert.equal(sandbox.probe().scene,'dub');
 sandbox.__sonoraNative={mode:'microphone',generation:1,bands:[.8,.5,.7],rms:.6,timeline:{position:0,track:''}};
@@ -76,20 +79,21 @@ clock=23500;down(100,200);up(500,200);assert.equal(sandbox.probe().scene,'bloom'
 down(500,100);up(450,400);assert.equal(sandbox.probe().scene,'bloom','vertical gesture must not change pattern');
 down(500,200);up(480,200);assert.equal(sandbox.probe().scene,'bloom','tap/short drag must be ignored');
 down(500,200);art.listeners.pointercancel();up(100,200);assert.equal(sandbox.probe().scene,'bloom');
-down(100,200);up(500,200);assert.equal(sandbox.probe().scene,'cymatic','previous wraps to last pattern');
+down(100,200);up(500,200);assert.equal(sandbox.probe().scene,nodes.get('#scene').options.at(-1).value,'previous wraps to last pattern');
 sandbox.frame(28501);assert.equal(sandbox.probe().transition,null,'fade must finish');
-clock=29000;down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'bloom','next wraps to first pattern');
+clock=29000;down(500,200);up(100,200);assert.equal(sandbox.probe().scene,nodes.get('#scene').options[0].value,'next wraps to first pattern');
 resize();assert.equal(sandbox.probe().transition,null,'resize cancels stale-sized frames');
 reduced=true;clock=30000;down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'orbit');assert.equal(sandbox.probe().transition,null,'reduced motion switches without glitch/fade');
 reduced=false;clock=31000;set('tide');fullscreen=false;sandbox.frame(31016);assert.equal(sandbox.probe().transition,null,'exit fullscreen cancels transition');
 fullscreen=true;reduced=false;
-for(const style of ['bloom','orbit','tide','cymatic']){
+for(const {value:style} of nodes.get('#scene').options){
   sandbox.__sonoraNative={mode:'apple',generation:20,bands:[0,0,0],rms:0,timeline:{playing:true,position:5,track:'one'}};
-  set('dub');clock=32000;set(style);assert(sandbox.probe().transition);
+  set(style==='dub'?'bloom':'dub');clock=32000;set(style);assert(sandbox.probe().transition);
   sandbox.__sonoraNative.generation=21;sandbox.frame(32016);assert.equal(sandbox.probe().transition,null,style+' must cancel on native source generation');
-  set('dub');clock=33000;set(style);sandbox.__sonoraNative.timeline.track='two';sandbox.frame(33016);assert.equal(sandbox.probe().transition,null,style+' must cancel on track change');
-  set('dub');clock=34000;set(style);sandbox.__sonoraNative.timeline.position=30;sandbox.frame(34016);assert.equal(sandbox.probe().transition,null,style+' must cancel on native seek');
-  set('dub');clock=35000;set(style);nodes.get('#audio').listeners.seeking();assert.equal(sandbox.probe().transition,null,style+' must cancel on browser seek');
+  set(style==='dub'?'bloom':'dub');clock=33000;set(style);sandbox.__sonoraNative.timeline.track='two';sandbox.frame(33016);assert.equal(sandbox.probe().transition,null,style+' must cancel on track change');
+  set(style==='dub'?'bloom':'dub');clock=34000;set(style);sandbox.__sonoraNative.timeline.position=30;sandbox.frame(34016);assert.equal(sandbox.probe().transition,null,style+' must cancel on native seek');
+  set(style==='dub'?'bloom':'dub');clock=35000;set(style);nodes.get('#audio').listeners.seeking();assert.equal(sandbox.probe().transition,null,style+' must cancel on browser seek');
+  sandbox.__sonoraNative=null;set(style==='dub'?'bloom':'dub');clock=35500;set(style);nodes.get('#audio').src='blob:'+style;sandbox.frame(35516);assert.equal(sandbox.probe().transition,null,style+' must cancel on browser source change');
 }
 // Cymatic is recomputed from bounded analytic nodes: no stale particle/bitmap state.
 fullscreen=false;set('cymatic');
@@ -102,4 +106,56 @@ reduced=false;resize();sandbox.__sonoraNative.timeline.position=5;assert.equal(c
 sandbox.__sonoraNative={mode:'microphone',generation:41,bands:[0,0,0],rms:0,timeline:{position:0,track:''}};reduced=true;const silent=capture(36600);sandbox.__sonoraNative.bands=[.8,.7,.9];assert.notEqual(capture(36700),silent,'real bands must change nodal geometry even at fixed phase');
 assert(html.includes('<option value="cymatic">Cymatic</option>'));
 for(const path of ['ios/SONORA/SONORAApp.swift','ios/SONORA/RendererHost.swift'])assert((await Bun.file(new URL('../'+path,import.meta.url)).text()).includes('"cymatic"'));
+// Dice are rigid projected cubes, not changing screen-space dot patterns.
+fullscreen=false;reduced=false;set('dice');assert.equal(nodes.get('#scene').value,'dice');
+nodes.get('#scene').listeners.change({target:{value:'bloom'}});assert.equal(sandbox.probe().scene,'bloom');
+nodes.get('#scene').listeners.change({target:{value:'dice'}});assert.equal(sandbox.probe().scene,'dice');
+const definitions=sandbox.diceDefinitions;
+assert.deepEqual(Array.from(definitions.faces,f=>f.value).sort(),[1,2,3,4,5,6]);
+for(const f of definitions.faces){
+  const opposite=definitions.faces.find(g=>g.n.every((n,k)=>n===-f.n[k]));assert.equal(f.value+opposite.value,7);
+  const dots=definitions.pips[f.value];assert.equal(dots.length,f.value);assert.equal(new Set(dots.map(String)).size,f.value);
+  assert(dots.every(uv=>uv.every(n=>Math.abs(n)+.145<1)),'all pips must be inset on their face');
+  const cross=[f.u[1]*f.v[2]-f.u[2]*f.v[1],f.u[2]*f.v[0]-f.u[0]*f.v[2],f.u[0]*f.v[1]-f.u[1]*f.v[0]];
+  assert.deepEqual(cross,Array.from(f.n),'face basis must point outwards');
+}
+const diceCapture=now=>{dicePaint=[];sandbox.frame(now);const result=JSON.stringify(dicePaint);assert(dicePaint.length>0&&dicePaint.length<=21*7);assert(dicePaint.every(p=>p.path.every(xy=>xy.every(Number.isFinite))));dicePaint=null;return result;};
+sandbox.__sonoraNative={mode:'apple',generation:50,bands:[0,0,0],rms:0,timeline:{playing:false,position:5,track:'dice'}};
+const dice=diceCapture(37000);assert.equal(diceCapture(39000),dice,'paused Apple Dice must not drift with wall clock');
+sandbox.__sonoraNative.timeline.position=15;assert.notEqual(diceCapture(39100),dice,'Apple time must rotate Dice');
+reduced=true;const stillDice=diceCapture(39200);sandbox.__sonoraNative.timeline.position=25;assert.equal(diceCapture(39300),stillDice,'reduced motion must freeze Apple Dice');
+reduced=false;resize();sandbox.__sonoraNative.timeline.position=5;assert.equal(diceCapture(39400),dice,'Dice must be stateless across seek/resize');
+sandbox.__sonoraNative={mode:'microphone',generation:51,bands:[0,0,0],rms:0,timeline:{position:0,track:''}};
+reduced=true;const silentDice=diceCapture(39500);sandbox.__sonoraNative.bands=[.8,.7,.9];assert.notEqual(diceCapture(39600),silentDice,'reduced motion retains live scale/registration effects');
+const quietMesh=JSON.stringify(mesh.map(f=>f.point(0,0)));sandbox.__sonoraNative.bands=[0,1,0];diceCapture(39700);const tiltMesh=JSON.stringify(mesh.map(f=>f.point(0,0)));
+sandbox.__sonoraNative.bands=[0,0,0];diceCapture(39800);assert.equal(JSON.stringify(mesh.map(f=>f.point(0,0))),tiltMesh,'reduced motion must freeze mid-driven tilt');
+assert.notEqual(quietMesh,tiltMesh,'bass must still scale the quiet composition');
+// Sweep rotations/bands and mobile, desktop, portrait, landscape sizes; inspect actual drawn faces and pip paths.
+for(const [w,h] of [[320,560],[390,300],[1440,780],[844,300]])for(const t of [0,1,5,13,50]){
+  vm.runInContext(`phase=${t}`,sandbox);dicePaint=[];sandbox.diceFrame(w,h,1,.7,.9,false);
+  assert(mesh.length>=7&&mesh.length<=21);assert.equal(new Set(mesh.map(f=>f.i)).size,7);
+  assert(mesh.every((f,j)=>f.normal[2]>.001&&(!j||mesh[j-1].depth<=f.depth)),'only front faces, far-to-near');
+  let paint=0;
+  for(const f of mesh){
+    assert(mesh.filter(g=>g.i===f.i).length<=3);
+    const face=dicePaint[paint++];assert.equal(face.path.length,4);
+    assert(face.path.every(([x,y])=>x>0&&x<w&&y>0&&y<h),'fitted cube corners');
+    for(const [u,v] of definitions.pips[f.face.value]){
+      const pip=dicePaint[paint++];assert.equal(pip.path.length,12);
+      for(let j=0;j<12;j++){
+        const a=j/12*Math.PI*2,expected=f.point(u+Math.cos(a)*.145,v+Math.sin(a)*.145);
+        assert(pip.path[j].every((n,k)=>Number.isFinite(n)&&Math.abs(n-expected[k])<1e-8),'pips must rotate/project with their own face');
+      }
+    }
+  }
+  assert.equal(paint,dicePaint.length);dicePaint=null;
+}
+assert.equal(sandbox.probe().length,0,'Dice must not store histories');assert.equal(sandbox.probe().mosh,null,'Dice must clear old prediction state');
+for(const path of ['ios/SONORA/SONORAApp.swift','ios/SONORA/RendererHost.swift'])assert((await Bun.file(new URL('../'+path,import.meta.url)).text()).includes('"dice"'));
+const swift=await Bun.file(new URL('../ios/SONORA/SONORAApp.swift',import.meta.url)).text();
+const styles=nodes.get('#scene').options.map(o=>o.value),host=await Bun.file(new URL('../ios/SONORA/RendererHost.swift',import.meta.url)).text();
+assert.deepEqual(JSON.parse('['+host.match(/guard \[([^\]]+)\]\.contains\(value\)/)[1]+']'),styles,'native guard and web cycle must agree');
+assert.deepEqual([...swift.match(/Picker\("Visual style"[^\n]+/)[0].matchAll(/\.tag\("([^"]+)"\)/g)].map(m=>m[1]),styles,'native menu and web cycle must agree');
+assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.segmented\)/.test(swift));
+console.log('PASS: Dice seven fitted cubes, finite bounded depth-sorted visible faces, fixed 1–6 face-local pips/opposites sum7, shared select/native routing and menu/source picker; deterministic Apple pause/time/seek and reduced-motion rotation freeze with live bands');
 console.log('PASS: Cymatic bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s block-mosh fade, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');

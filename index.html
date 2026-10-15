@@ -37,7 +37,7 @@
 </style>
 </head>
 <body>
-<!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among five different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
+<!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among seven different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
 <main class="shell">
 <header class="top"><div class="brand">S<span>O</span>NORA</div><div class="tag">A living instrument for sound</div></header>
 <section class="stage" aria-label="Audio visualization">
@@ -53,7 +53,7 @@
 <button class="icon-btn play" id="play" aria-label="Play" disabled><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
 <button class="icon-btn" id="forward" aria-label="Skip to end" disabled><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM5 6v12l10-6z"/></svg></button>
 </div><label class="seek"><span id="current">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" disabled><span id="duration">0:00</span></label></div>
-<div class="tools"><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option><option value="cymatic">Cymatic</option></select></div><div class="hint">Local files stay on-device.<br>Sample streams online.</div></div>
+<div class="tools"><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option><option value="cymatic">Cymatic</option><option value="dice">Dice</option></select></div><div class="hint">Local files stay on-device.<br>Sample streams online.</div></div>
 </footer>
 </main>
 <aside class="pwa-install" aria-label="Install SONORA"><button id="installApp" hidden>Install SONORA</button><span id="installHint" role="status">iPhone: Share → Add to Home Screen · Offline files must be selected again after reopening.</span></aside>
@@ -71,7 +71,7 @@ toggle.addEventListener('click',enter);exit.addEventListener('click',leave);docu
 </script>
 <script>
 const canvas=document.querySelector('#art'),ctx=canvas.getContext('2d'),audio=document.querySelector('#audio'),file=document.querySelector('#audioFile'),play=document.querySelector('#play'),seek=document.querySelector('#seek'),state=document.querySelector('#state'),welcome=document.querySelector('#welcome');
-window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh','cymatic'].includes(value)||scene===value)return;const animate=document.body.classList.contains('visualizer-fullscreen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&canvas.width&&canvas.height;if(animate){if(!transitionOld){transitionOld=document.createElement('canvas');transitionNew=document.createElement('canvas');}for(const layer of [transitionOld,transitionNew]){layer.width=canvas.width;layer.height=canvas.height;}transitionOld.getContext('2d').drawImage(canvas,0,0);sceneTransition={start:performance.now(),source:visualSource(),position:window.__sonoraNative?.mode==='apple'?window.__sonoraNative.timeline.position:audio.currentTime};}else sceneTransition=null;resetDub(false);scene=value;document.querySelector('#scene').value=value};
+window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh','cymatic','dice'].includes(value)||scene===value)return;const animate=document.body.classList.contains('visualizer-fullscreen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&canvas.width&&canvas.height;if(animate){if(!transitionOld){transitionOld=document.createElement('canvas');transitionNew=document.createElement('canvas');}for(const layer of [transitionOld,transitionNew]){layer.width=canvas.width;layer.height=canvas.height;}transitionOld.getContext('2d').drawImage(canvas,0,0);sceneTransition={start:performance.now(),source:visualSource(),position:window.__sonoraNative?.mode==='apple'?window.__sonoraNative.timeline.position:audio.currentTime};}else sceneTransition=null;resetDub(false);scene=value;document.querySelector('#scene').value=value};
 function setPlayIcon(paused){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',paused?'M8 5v14l11-7z':'M6 5h4v14H6zm8 0h4v14h-4z');svg.append(path);play.replaceChildren(svg)}
 let analyser,data,phase=0,scene='bloom',loaded=false,level=0,beat=0,lastFrame=0,objectURL;
 let sceneTransition=null,transitionOld,transitionNew,swipeStart=null;
@@ -119,6 +119,8 @@ if(scene==='bloom'){
     ctx.fillStyle=field>0?'#ff573f':'#f4ead3';ctx.fillRect(px,py,grainSize,grainSize);
   }
   ctx.restore();
+}else if(scene==='dice'){
+  drawDice(w,h,bass,mids,highs,still);
 }else if(scene==='datamosh'){
   drawDatamosh(now,w,h,bass,mids,highs,still,nativeOn&&native.mode==='apple');
 }else if(scene==='dub'){
@@ -128,6 +130,48 @@ if(scene==='bloom'){
   for(let row=0;row<31;row++){const y=h*(.11+row*.026),amp=h*(.03+level*.13),bend=Math.sin(row*.32+phase)*amp;ctx.beginPath();ctx.moveTo(0,h);for(let i=0;i<=140;i++){const x=i/140*w,t=i/140,edge=Math.sin(t*Math.PI),wave=Math.sin(t*11+phase*1.4+row*.21)*amp*.34+Math.sin(t*23-phase+row*.35)*highs*amp*.5;ctx.lineTo(x,y+bend*edge+wave*edge+Math.sin(t*4+row*.13)*mids*h*.12)}ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle=`hsla(${row<13?178+row*3:18+row*3},${row<13?57:75}%,${row<13?24:48}%,${.065+row*.002})`;ctx.fill();ctx.strokeStyle=`hsla(${row<13?169:22+row*2},80%,75%,${.1+row*.012})`;ctx.lineWidth=row%5===0?1.5:.7;ctx.stroke()}
 }
 if(sceneTransition)blendScene(now,w,h,bass);
+}
+// Dice: opposite faces sum to seven; pips live in each face's fixed local basis.
+const dicePips=[[],[[0,0]],[[-.48,-.48],[.48,.48]],[[-.48,-.48],[0,0],[.48,.48]],[[-.48,-.48],[.48,-.48],[-.48,.48],[.48,.48]],[[-.48,-.48],[.48,-.48],[0,0],[-.48,.48],[.48,.48]],[[-.48,-.48],[.48,-.48],[-.48,0],[.48,0],[-.48,.48],[.48,.48]]];
+const diceFaces=[
+  {value:1,n:[0,0,1],u:[1,0,0],v:[0,1,0]},
+  {value:6,n:[0,0,-1],u:[-1,0,0],v:[0,1,0]},
+  {value:2,n:[1,0,0],u:[0,1,0],v:[0,0,1]},
+  {value:5,n:[-1,0,0],u:[0,-1,0],v:[0,0,1]},
+  {value:3,n:[0,1,0],u:[0,0,1],v:[1,0,0]},
+  {value:4,n:[0,-1,0],u:[0,0,-1],v:[1,0,0]}
+];
+function drawDice(w,h,bass,mids,highs,still){
+  // ponytail: seven separated cubes, 42 candidate faces and 12-sided pips; GPU meshes only if this bounded sculpture grows.
+  const t=still?0:phase,unit=Math.min(w*.105,h*.105),ox=w*(w<760||document.body.classList.contains('visualizer-fullscreen')?.5:.56),oy=h*.48;
+  const arrangement=[[-2.4,-1.9,.58],[-.45,-2.55,.46],[2,-1.55,.65],[-2.15,.65,.52],[0,0,.86],[2.35,1.25,.55],[-.35,2.45,.67]],faces=[];
+  for(let i=0;i<arrangement.length;i++){
+    const [x,y,size]=arrangement[i],a=.42+i*.71+t*(i%2?-.61:.48)+(still?0:mids*.4),b=.56+i*1.13+t*.73,c=i*.39+t*.21;
+    const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cc=Math.cos(c),sc=Math.sin(c);
+    const rotate=([x,y,z])=>{const yy=y*ca-z*sa,zz=y*sa+z*ca,xx=x*cb+zz*sb;z=-x*sb+zz*cb;return [xx*cc-yy*sc,xx*sc+yy*cc,z];};
+    const scale=unit*size*(1+bass*.16),bounce=still?0:Math.sin(t*2.6+i*.9)*(.07+bass*.28)*unit;
+    for(const face of diceFaces){
+      const normal=rotate(face.n);if(normal[2]<=.001)continue;
+      const point=(u,v)=>{const q=rotate(face.n.map((n,k)=>n+face.u[k]*u+face.v[k]*v));return [ox+x*unit+q[0]*scale,oy+y*unit+q[1]*scale+bounce,q[2]*scale+i*.03*unit];};
+      faces.push({i,face,normal,point,depth:point(0,0)[2]});
+    }
+  }
+  faces.sort((a,b)=>a.depth-b.depth);
+  ctx.save();ctx.lineJoin='round';ctx.lineWidth=Math.max(1,unit*.035);
+  for(const {i,face,normal,point} of faces){
+    const corners=[[-1,-1],[1,-1],[1,1],[-1,1]],shade=.58+normal[2]*.34;
+    const path=(points,dx=0,dy=0)=>{ctx.beginPath();points.forEach(([x,y],j)=>j?ctx.lineTo(x+dx,y+dy):ctx.moveTo(x+dx,y+dy));ctx.closePath();};
+    const vertices=corners.map(([u,v])=>point(u,v));
+    path(vertices);ctx.fillStyle=i===2?`rgb(${Math.round(244*shade)},${Math.round(88*shade)},${Math.round(64*shade)})`:`rgb(${Math.round(244*shade)},${Math.round(234*shade)},${Math.round(211*shade)})`;ctx.fill();
+    // A restrained blue registration edge follows treble, not another tumbling object.
+    path(vertices,highs*unit*.09,-highs*unit*.04);ctx.strokeStyle='#347fff';ctx.stroke();
+    path(vertices);ctx.strokeStyle='#17202b';ctx.stroke();ctx.fillStyle='#17202b';
+    for(const [u,v] of dicePips[face.value]){
+      const rim=[];for(let j=0;j<12;j++){const angle=j/12*Math.PI*2;rim.push(point(u+Math.cos(angle)*.145,v+Math.sin(angle)*.145));}
+      path(rim);ctx.fill();
+    }
+  }
+  ctx.restore();
 }
 // Dub keeps a single feedback canvas and sampled geometry, never a growing stack of bitmaps.
 function drawDub(now,w,h,cx,cy,R,bass,mids,highs,still,apple){
