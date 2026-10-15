@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
-let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let grains=null,dicePaint=null,path=[],mesh=[];
-const ctx=new Proxy({beginPath(){path=[];},moveTo(...xy){path.push(xy);},lineTo(...xy){path.push(xy);},fill(){if(dicePaint)dicePaint.push({path:path.slice(),ink:this.fillStyle});},fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;}}, {get:(o,k)=>k in o?o[k]:()=>{}});
+let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let grains=null,dicePaint=null,diceLines=[],path=[],mesh=[];
+const ctx=new Proxy({beginPath(){path=[];},moveTo(...xy){path.push(xy);},lineTo(...xy){path.push(xy);},fill(){if(dicePaint)dicePaint.push({path:path.slice(),ink:this.fillStyle});},fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;if(dicePaint)diceLines.push({path:path.slice(),ink:this.strokeStyle,width:this.lineWidth});}}, {get:(o,k)=>k in o?o[k]:()=>{}});
 const nodes=new Map();
 function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
 const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>fullscreen}}};
@@ -119,7 +119,23 @@ for(const f of definitions.faces){
   const cross=[f.u[1]*f.v[2]-f.u[2]*f.v[1],f.u[2]*f.v[0]-f.u[0]*f.v[2],f.u[0]*f.v[1]-f.u[1]*f.v[0]];
   assert.deepEqual(cross,Array.from(f.n),'face basis must point outwards');
 }
-const diceCapture=now=>{dicePaint=[];sandbox.frame(now);const result=JSON.stringify(dicePaint);assert(dicePaint.length>0&&dicePaint.length<=21*7);assert(dicePaint.every(p=>p.path.every(xy=>xy.every(Number.isFinite))));dicePaint=null;return result;};
+// Inspect actual Canvas2D paint, not source strings: rings must share the projected pip path.
+function assertDiceInk(){
+  const rgba=ink=>{const match=/^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/.exec(ink);assert(match,'Dice uses translucent ink');return match.slice(1).map(Number);};
+  for(const paint of dicePaint){
+    const [r,g,b,a]=rgba(paint.ink);assert(a>0&&a<=.035,'planes and pip interiors remain nearly transparent');
+    assert(['39,137,127','182,245,212','255,145,123'].includes([r,g,b].join(',')),'teal / mint / coral fill only');
+  }
+  for(const line of diceLines){
+    const [r,g,b,a]=rgba(line.ink);assert(a>0&&a<=.56);assert(line.width>0&&line.width<=.85,'fine contours, not heavy borders');
+    assert(['182,245,212','255,145,123','152,184,255'].includes([r,g,b].join(',')),'incumbent palette, no black or cobalt');
+  }
+  const pips=dicePaint.filter(p=>p.path.length===12),rings=diceLines.filter(p=>p.path.length===12);
+  assert(pips.length>0);assert.equal(rings.length,pips.length,'every pip has one fine outline');
+  for(let i=0;i<pips.length;i++){assert.deepEqual(rings[i].path,pips[i].path);assert(rings[i].width<=.7);}
+  assert.equal(diceLines.length,mesh.length*2+pips.length,'bounded face contours, single offset echo and pip rings');
+}
+const diceCapture=now=>{dicePaint=[];diceLines=[];sandbox.frame(now);const result=JSON.stringify({fills:dicePaint,lines:diceLines});assertDiceInk();assert(dicePaint.length>0&&dicePaint.length<=21*7);assert(dicePaint.every(p=>p.path.every(xy=>xy.every(Number.isFinite))));dicePaint=null;return result;};
 sandbox.__sonoraNative={mode:'apple',generation:50,bands:[0,0,0],rms:0,timeline:{playing:false,position:5,track:'dice'}};
 const dice=diceCapture(37000);assert.equal(diceCapture(39000),dice,'paused Apple Dice must not drift with wall clock');
 sandbox.__sonoraNative.timeline.position=15;assert.notEqual(diceCapture(39100),dice,'Apple time must rotate Dice');
@@ -132,7 +148,7 @@ sandbox.__sonoraNative.bands=[0,0,0];diceCapture(39800);assert.equal(JSON.string
 assert.notEqual(quietMesh,tiltMesh,'bass must still scale the quiet composition');
 // Sweep rotations/bands and mobile, desktop, portrait, landscape sizes; inspect actual drawn faces and pip paths.
 for(const [w,h] of [[320,560],[390,300],[1440,780],[844,300]])for(const t of [0,1,5,13,50]){
-  vm.runInContext(`phase=${t}`,sandbox);dicePaint=[];sandbox.diceFrame(w,h,1,.7,.9,false);
+  vm.runInContext(`phase=${t}`,sandbox);dicePaint=[];diceLines=[];sandbox.diceFrame(w,h,1,.7,.9,false);
   assert(mesh.length>=7&&mesh.length<=21);assert.equal(new Set(mesh.map(f=>f.i)).size,7);
   assert(mesh.every((f,j)=>f.normal[2]>.001&&(!j||mesh[j-1].depth<=f.depth)),'only front faces, far-to-near');
   let paint=0;
@@ -148,7 +164,7 @@ for(const [w,h] of [[320,560],[390,300],[1440,780],[844,300]])for(const t of [0,
       }
     }
   }
-  assert.equal(paint,dicePaint.length);dicePaint=null;
+  assert.equal(paint,dicePaint.length);assertDiceInk();dicePaint=null;
 }
 assert.equal(sandbox.probe().length,0,'Dice must not store histories');assert.equal(sandbox.probe().mosh,null,'Dice must clear old prediction state');
 for(const path of ['ios/SONORA/SONORAApp.swift','ios/SONORA/RendererHost.swift'])assert((await Bun.file(new URL('../'+path,import.meta.url)).text()).includes('"dice"'));
@@ -157,5 +173,5 @@ const styles=nodes.get('#scene').options.map(o=>o.value),host=await Bun.file(new
 assert.deepEqual(JSON.parse('['+host.match(/guard \[([^\]]+)\]\.contains\(value\)/)[1]+']'),styles,'native guard and web cycle must agree');
 assert.deepEqual([...swift.match(/Picker\("Visual style"[^\n]+/)[0].matchAll(/\.tag\("([^"]+)"\)/g)].map(m=>m[1]),styles,'native menu and web cycle must agree');
 assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.segmented\)/.test(swift));
-console.log('PASS: Dice seven fitted cubes, finite bounded depth-sorted visible faces, fixed 1–6 face-local pips/opposites sum7, shared select/native routing and menu/source picker; deterministic Apple pause/time/seek and reduced-motion rotation freeze with live bands');
+console.log('PASS: Dice translucent teal/coral planes, fine mint/coral pip rings and contours, bounded pale-blue treble echo (actual ctx trace); seven fitted cubes, finite bounded depth-sorted visible faces, fixed 1–6 face-local pips/opposites sum7, shared select/native routing and menu/source picker; deterministic Apple pause/time/seek and reduced-motion rotation freeze with live bands');
 console.log('PASS: Cymatic bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s block-mosh fade, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
