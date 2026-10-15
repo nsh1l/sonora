@@ -47,6 +47,13 @@ const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];if(!scripts.le
 eval(scripts.at(-1)[1]+'\nglobalThis.__sonoraTestDraw=draw;');
 const picker=elements.get('audioFile');picker.files=[{name:'kept-local.mp3',type:'audio/mpeg'}];picker.fire('change');
 if(elements.get('trackName').textContent!=='kept-local'||elements.get('play').disabled)throw Error('existing browser-local audio flow regressed');
+// Extension selection also works when a file manager omits or varies the FLAC MIME type.
+if(!html.includes('accept="audio/*,.flac,audio/flac,audio/x-flac"'))throw Error('FLAC picker extension/MIME coverage missing');
+for(const [name,type] of [['lossless.flac','audio/flac'],['legacy.flac','audio/x-flac'],['unknown.FLAC',''],['generic.flac','application/octet-stream']]){
+  picker.files=[{name,type}];picker.fire('change');
+  if(audio.src!=='blob:track'||elements.get('trackName').textContent!==name.replace(/\.[^.]+$/,'')||elements.get('play').disabled)throw Error('FLAC must share local audio path: '+type);
+}
+
 SONORA.setShell();SONORA.setPayload(valid('apple',1,{timeline:{playing:false,position:5,duration:120,track:'a'}}));
 traces.length=0;__sonoraTestDraw(16);const paused=JSON.stringify(traces.slice(0,30));
 traces.length=0;__sonoraTestDraw(32);if(JSON.stringify(traces.slice(0,30))!==paused)throw Error('paused playback position changed the frame');
@@ -77,4 +84,4 @@ let revoked=0;URL.revokeObjectURL=()=>revoked++;picker.fire('change');elements.g
 if(revoked!==1)throw Error('local blob URL was not released on source switches');
 audio.play=async()=>{throw Error('blocked')};elements.get('sampleTrack').fire('click');await new Promise(r=>setTimeout(r,0));
 if(elements.get('state').textContent!=='COULDN’T START PLAYBACK')throw Error('playback rejection was hidden');
-console.log('PASS: sample one-click playback, shared analyser, source switching, playback errors; native bridge validation, source isolation, permission errors, Apple timeline drawing, reduced motion, and browser local-file flow');
+console.log('PASS: FLAC extension/MIME variants share local transport; sample one-click playback, shared analyser, source switching, playback errors; native bridge validation, source isolation, permission errors, Apple timeline drawing, reduced motion, and browser local-file flow');
