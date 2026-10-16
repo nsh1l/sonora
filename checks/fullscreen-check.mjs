@@ -5,6 +5,13 @@ for (const assertion of [
   'transition:opacity 350ms cubic-bezier(.22,1,.36,1)',
   'body.visualizer-fullscreen #art{position:fixed',
   'const stage=document.documentElement',
+  '.fullscreen-hint{display:none;position:fixed;z-index:12;',
+  'body.visualizer-fullscreen .fullscreen-hint{display:block;animation:hint-fade 5s linear forwards,hint-glitch 5s steps(1,end) forwards}',
+  '@keyframes hint-fade{0%,65%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}',
+  '@media(prefers-reduced-motion:reduce){body.visualizer-fullscreen .fullscreen-hint{animation:hint-fade 5s linear forwards}}',
+  'pointer-events:none;user-select:none',
+  'bottom:calc(18px + env(safe-area-inset-bottom))',
+  '<p class="fullscreen-hint" id="fullscreenHint">左右にスワイプしてパターンを切り替え</p>',
   '.top,.bottom,.pwa-install{position:relative;z-index:11}',
   'body.visualizer-fullscreen .top{opacity:0;transform:translateY(-38px)',
   '@media(prefers-reduced-motion:reduce){.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle,.fullscreen-exit{transition:none!important}'
