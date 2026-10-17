@@ -111,10 +111,12 @@ if(scene==='bloom'){
  }else if(scene==='cymatic'){
   // Cymatic: nodal powder / spectral misregistration, not a physical plate simulation.
   // ponytail: fixed 96x96 field; raise resolution only after profiling, no particle histories.
-  const size=Math.min(w*.78,h*.82),step=size/96,m=3+bass*4,n=5+mids*6;
-  const t=still?0:phase,warp=Math.sin(t*.41)*.55,threshold=.14+bass*.18;
+  const t=still?0:phase,angle=.12+Math.sin(t*.23)*.09,c=Math.abs(Math.cos(angle)),s=Math.abs(Math.sin(angle));
+  // Cover every viewport corner after rotation; keep grains square and crop the overscan.
+  const size=Math.max(w*c+h*s,w*s+h*c)*1.04,step=size/96,m=3+bass*4,n=5+mids*6;
+  const warp=Math.sin(t*.41)*.55,threshold=.14+bass*.18;
   const cm=[],cn=[];for(let i=0;i<96;i++){const u=(i+.5)/96;cm.push(Math.cos(m*Math.PI*u));cn.push(Math.cos(n*Math.PI*u));}
-  ctx.save();ctx.translate(w<760?w*.5:cx,cy);ctx.rotate(.12+Math.sin(t*.23)*.09);ctx.globalCompositeOperation='lighter';
+  ctx.save();ctx.translate(w*.5,h*.5);ctx.rotate(angle);ctx.globalCompositeOperation='lighter';
   for(let y=0;y<96;y++)for(let x=0;x<96;x++){
     const field=cm[x]*cn[y]-cn[x]*cm[y]+warp*(cn[x]*cn[y]-cm[x]*cm[y]);
     const density=Math.max(0,1-Math.abs(field)/threshold);if(!density)continue;
