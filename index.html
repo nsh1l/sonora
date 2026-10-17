@@ -42,7 +42,7 @@
 </style>
 </head>
 <body>
-<!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among nine different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
+<!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among eight different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
 <main class="shell">
 <header class="top"><div class="brand">S<span>O</span>NORA</div><div class="tag">A living instrument for sound</div></header>
 <section class="stage" aria-label="Audio visualization">
@@ -59,7 +59,7 @@
 <button class="icon-btn play" id="play" aria-label="Play" disabled><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
 <button class="icon-btn" id="forward" aria-label="Skip to end" disabled><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM5 6v12l10-6z"/></svg></button>
 </div><label class="seek"><span id="current">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" disabled><span id="duration">0:00</span></label></div>
-<div class="tools"><button class="file-btn" id="frameRate" type="button" aria-pressed="false">24fps</button><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*,.flac,audio/flac,audio/x-flac"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option><option value="cymatic">Cymatic</option><option value="dice">Dice</option><option value="velvet">Velvet</option><option value="satin">Satin Ribbon</option></select></div><div class="hint">Local files stay on-device.<br>Sample streams online.</div></div>
+<div class="tools"><button class="file-btn" id="frameRate" type="button" aria-pressed="false">24fps</button><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*,.flac,audio/flac,audio/x-flac"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option><option value="cymatic">Cymatic</option><option value="dice">Dice</option><option value="velvet">Velvet</option></select></div><div class="hint">Local files stay on-device.<br>Sample streams online.</div></div>
 </footer>
 </main>
 <aside class="pwa-install" aria-label="Install SONORA"><button id="installApp" hidden>Install SONORA</button><span id="installHint" role="status">iPhone: Share → Add to Home Screen · Offline files must be selected again after reopening.</span></aside>
@@ -77,7 +77,7 @@ toggle.addEventListener('click',enter);exit.addEventListener('click',leave);docu
 </script>
 <script>
 const canvas=document.querySelector('#art'),ctx=canvas.getContext('2d'),audio=document.querySelector('#audio'),file=document.querySelector('#audioFile'),play=document.querySelector('#play'),seek=document.querySelector('#seek'),state=document.querySelector('#state'),welcome=document.querySelector('#welcome');
-window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh','cymatic','dice','velvet','satin'].includes(value)||scene===value)return;const animate=document.body.classList.contains('visualizer-fullscreen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&canvas.width&&canvas.height;if(animate){if(!transitionOld){transitionOld=document.createElement('canvas');transitionNew=document.createElement('canvas');}for(const layer of [transitionOld,transitionNew]){layer.width=canvas.width;layer.height=canvas.height;}transitionOld.getContext('2d').drawImage(canvas,0,0);sceneTransition={start:performance.now(),source:visualSource(),position:window.__sonoraNative?.mode==='apple'?window.__sonoraNative.timeline.position:audio.currentTime};}else sceneTransition=null;resetDub(false);scene=value;document.querySelector('#scene').value=value};
+window.SONORA.setStyle=(value)=>{if(!['bloom','orbit','tide','dub','datamosh','cymatic','dice','velvet'].includes(value)||scene===value)return;const animate=document.body.classList.contains('visualizer-fullscreen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&canvas.width&&canvas.height;if(animate){if(!transitionOld){transitionOld=document.createElement('canvas');transitionNew=document.createElement('canvas');}for(const layer of [transitionOld,transitionNew]){layer.width=canvas.width;layer.height=canvas.height;}transitionOld.getContext('2d').drawImage(canvas,0,0);sceneTransition={start:performance.now(),source:visualSource(),position:window.__sonoraNative?.mode==='apple'?window.__sonoraNative.timeline.position:audio.currentTime};}else sceneTransition=null;resetDub(false);scene=value;document.querySelector('#scene').value=value};
 function setPlayIcon(paused){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',paused?'M8 5v14l11-7z':'M6 5h4v14H6zm8 0h4v14h-4z');svg.append(path);play.replaceChildren(svg)}
 let analyser,data,phase=0,scene='bloom',loaded=false,level=0,beat=0,lastFrame=0,objectURL;
 let frameRate=0,frameOrigin=null,frameBucket=-1;
@@ -134,8 +134,7 @@ if(scene==='bloom'){
   ctx.restore();
 }else if(scene==='velvet'){
   drawVelvet(w,h,bass,mids,highs,still);
-}else if(scene==='satin'){
-  drawSatinRibbon(w,h,bass,mids,highs,still);
+
 }else if(scene==='dice'){
   drawDice(w,h,bass,mids,highs,still);
 }else if(scene==='datamosh'){
@@ -171,36 +170,6 @@ function drawVelvet(w,h,bass,mids,highs,still){
     }
     // Nap stays broad and dim; high-band energy changes its tint, never sparks or flicker.
     ctx.globalAlpha=.018+highs*.016;ctx.fillStyle='#eab18c';ctx.fill();
-  }
-  ctx.restore();
-}
-function drawSatinRibbon(w,h,bass,mids,highs,still){
-  // ponytail: three tapered strips x 96 shaded quads, plus three edge paths; no mesh/history simulation.
-  const t=still?0:phase,unit=Math.min(w*.52,h*.68),ox=w*(w<760||document.body.classList.contains('visualizer-fullscreen')?.5:.57);
-  ctx.save();ctx.globalAlpha=1;
-  for(let strip=0;strip<3;strip++){
-    const points=[];
-    for(let i=0;i<=96;i++){
-      const u=i/96,a=u*7.2+t*.36+strip*1.7;
-      const x=ox+(strip-1)*unit*.38+Math.sin(a)*unit*.28+(u-.5)*unit*.28;
-      const y=h*(.12+u*.76)+Math.sin(a*.5)*unit*.04;
-      const dx=Math.cos(a)*unit*2.016+unit*.28,dy=h*.76+Math.cos(a*.5)*unit*.144,length=Math.hypot(dx,dy);
-      const fold=Math.cos(u*9-t*.27+strip*1.3+mids*.38);
-      const width=unit*(.095+bass*.012)*Math.pow(Math.sin(u*Math.PI),.65)*(.48+.52*Math.abs(fold));
-      points.push({x,y,nx:dy/length,ny:-dx/length,width,fold});
-    }
-    for(let i=0;i<96;i++){
-      const a=points[i],b=points[i+1],shade=.5+(a.fold+b.fold)*.125;
-      const light=ctx.createLinearGradient(a.x-a.nx*a.width,a.y-a.ny*a.width,a.x+a.nx*a.width,a.y+a.ny*a.width);
-      const hue=strip===1?22:350;
-      light.addColorStop(0,`hsl(${hue},32%,${14+shade*10}%)`);
-      light.addColorStop(.38,`hsl(${hue},42%,${29+shade*18}%)`);
-      light.addColorStop(.63,`hsl(${27+strip*2},54%,${42+shade*16}%)`);
-      light.addColorStop(1,`hsl(${hue},35%,${17+shade*9}%)`);
-      ctx.beginPath();ctx.moveTo(a.x-a.nx*a.width,a.y-a.ny*a.width);ctx.lineTo(b.x-b.nx*b.width,b.y-b.ny*b.width);ctx.lineTo(b.x+b.nx*b.width,b.y+b.ny*b.width);ctx.lineTo(a.x+a.nx*a.width,a.y+a.ny*a.width);ctx.closePath();ctx.fillStyle=light;ctx.fill();ctx.strokeStyle=light;ctx.lineWidth=.75;ctx.stroke();
-    }
-    ctx.beginPath();points.forEach((a,i)=>{const x=a.x+a.nx*a.width*.86,y=a.y+a.ny*a.width*.86;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
-    ctx.strokeStyle=`rgba(255,201,159,${.10+highs*.09})`;ctx.lineWidth=.7;ctx.stroke();
   }
   ctx.restore();
 }

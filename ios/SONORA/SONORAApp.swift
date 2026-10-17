@@ -19,7 +19,7 @@ struct RootView: View {
         VStack(spacing: 8) {
           Picker("Source", selection: $mode) { Text("Choose source").tag(RendererMode.idle); Text("Microphone").tag(RendererMode.microphone); Text("Apple Music").tag(RendererMode.apple); Text("Spotify").tag(RendererMode.spotify) }.pickerStyle(.segmented)
           if mode == .microphone { HStack { Text("Mic sensitivity"); Slider(value: $sensitivity, in: 0.5...3, step: 0.1).accessibilityLabel("Microphone sensitivity") }.font(.caption) }
-          Picker("Visual style", selection: $style) { Text("Bloom").tag("bloom"); Text("Orbit").tag("orbit"); Text("Tide").tag("tide"); Text("Dub").tag("dub"); Text("Mosh").tag("datamosh"); Text("Cymatic").tag("cymatic"); Text("Dice").tag("dice"); Text("Velvet").tag("velvet"); Text("Satin Ribbon").tag("satin") }.pickerStyle(.menu)
+          Picker("Visual style", selection: $style) { Text("Bloom").tag("bloom"); Text("Orbit").tag("orbit"); Text("Tide").tag("tide"); Text("Dub").tag("dub"); Text("Mosh").tag("datamosh"); Text("Cymatic").tag("cymatic"); Text("Dice").tag("dice"); Text("Velvet").tag("velvet") }.pickerStyle(.menu)
           Toggle("24fps", isOn: $use24fps)
         }.padding().background(.ultraThinMaterial)
       }

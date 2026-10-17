@@ -13,7 +13,7 @@ const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 // Observe the real transient mesh without adding production debug state.
 const instrumented=code.replace('faces.sort((a,b)=>a.depth-b.depth);','faces.sort((a,b)=>a.depth-b.depth);globalThis.inspectDice(faces);');
 sandbox.inspectDice=faces=>{mesh=faces};
-vm.runInContext(instrumented+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;this.diceDefinitions={faces:diceFaces,pips:dicePips};this.diceFrame=drawDice;this.materialFrames={velvet:drawVelvet,satin:drawSatinRibbon};`,sandbox);
+vm.runInContext(instrumented+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;this.diceDefinitions={faces:diceFaces,pips:dicePips};this.diceFrame=drawDice;this.materialFrames={velvet:drawVelvet};`,sandbox);
 const set=sandbox.SONORA.setStyle;
 set('dub');assert.equal(sandbox.probe().scene,'dub');
 sandbox.__sonoraNative={mode:'microphone',generation:1,bands:[.8,.5,.7],rms:.6,timeline:{position:0,track:''}};
@@ -178,27 +178,26 @@ const styles=nodes.get('#scene').options.map(o=>o.value),host=await Bun.file(new
 assert.deepEqual(JSON.parse('['+host.match(/guard \[([^\]]+)\]\.contains\(value\)/)[1]+']'),styles,'native guard and web cycle must agree');
 assert.deepEqual([...swift.match(/Picker\("Visual style"[^\n]+/)[0].matchAll(/\.tag\("([^"]+)"\)/g)].map(m=>m[1]),styles,'native menu and web cycle must agree');
 assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.segmented\)/.test(swift));
-// Actual Canvas2D material paint: broad feathered planes versus filled, tapered fabric strips.
+// Actual Velvet Canvas2D paint: bounded translucent feathered planes.
 fullscreen=false;reduced=false;
 const materialCapture=(style,drawFrame)=>{
   material=[];drawFrame();const trace=material;material=null;
   const fills=trace.filter(p=>p.op==='fill'),lines=trace.filter(p=>p.op==='stroke');
-  assert.equal(fills.length,style==='velvet'?52:288,style+' fixed surface budget');
-  assert.equal(lines.length,style==='velvet'?0:291,style+' is surface-led, not generic linewaves');
-  assert(fills.every(p=>p.path.length===(style==='velvet'?97:4)));
+  assert.equal(fills.length,52,style+' fixed surface budget');
+  assert.equal(lines.length,0,style+' is surface-led, not generic linewaves');
+  assert(fills.every(p=>p.path.length===(97)));
   assert(trace.every(p=>p.path.every(xy=>xy.every(Number.isFinite))));
   assert(trace.every(p=>Number.isFinite(p.alpha)&&p.alpha>0&&p.alpha<=1));
   const gradients=fills.filter(p=>typeof p.ink==='object');
-  assert.equal(gradients.length,style==='velvet'?48:288);
+  assert.equal(gradients.length,48);
   for(const {ink} of gradients){
-    assert.equal(ink.kind,style==='velvet'?'radial':'linear');assert(ink.args.every(Number.isFinite));
+    assert.equal(ink.kind,'radial');assert(ink.args.every(Number.isFinite));
     assert(ink.stops.length>=3&&ink.stops.every(([n,color])=>Number.isFinite(n)&&n>=0&&n<=1&&!/NaN|Infinity/.test(color)));
   }
-  if(style==='velvet')assert(fills.every(p=>p.alpha<=.042),'velour feather shells remain translucent');
-  else {const seals=lines.filter(p=>typeof p.ink==='object'),edges=lines.filter(p=>typeof p.ink==='string');assert.equal(seals.length,288);assert(seals.every((p,i)=>p.width===.75&&p.ink===fills[i].ink&&JSON.stringify(p.path)===JSON.stringify(fills[i].path)),'each quad seals its antialias seam with the same gradient');assert.equal(edges.length,3);assert(edges.every(p=>p.width===.7&&Number(p.ink.match(/,([\d.]+)\)$/)[1])<=.19),'satin edge highlights stay restrained');}
+  assert(fills.every(p=>p.alpha<=.042),'velour feather shells remain translucent');
   return {trace,json:JSON.stringify(trace)};
 };
-for(const style of ['velvet','satin']){
+for(const style of ['velvet']){
   reduced=false;
   nodes.get('#scene').listeners.change({target:{value:style}});assert.equal(sandbox.probe().scene,style);assert.equal(nodes.get('#scene').value,style);
   sandbox.__sonoraNative={mode:'apple',generation:60,bands:[0,0,0],rms:0,timeline:{playing:false,position:5,track:'fabric'}};
@@ -218,20 +217,13 @@ for(const style of ['velvet','satin']){
     vm.runInContext(`phase=${phase}`,sandbox);
     const {trace}=materialCapture(style,()=>sandbox.materialFrames[style](w,h,...bands,false));
     assert(trace.every(p=>p.path.every(([x,y])=>x>=-w&&x<=w*2&&y>=-h&&y<=h*2)),style+' coordinates remain viewport-bounded');
-    if(style==='satin'){
-      const fills=trace.filter(p=>p.op==='fill');
-      for(let strip=0;strip<3;strip++){
-        const first=fills[strip*96].path,last=fills[strip*96+95].path;
-        assert(Math.hypot(first[0][0]-first[3][0],first[0][1]-first[3][1])<1e-6);
-        assert(Math.hypot(last[1][0]-last[2][0],last[1][1]-last[2][1])<1e-6,'strip tips taper to zero');
-      }
-    }
   }
   assert.equal(sandbox.probe().length,0);assert.equal(sandbox.probe().mosh,null,'new materials use no histories');
 }
-reduced=false;
-assert.deepEqual(nodes.get('#scene').options.map(o=>o.value),['bloom','orbit','tide','dub','datamosh','cymatic','dice','velvet','satin']);
-for(const [id,label] of [['velvet','Velvet'],['satin','Satin Ribbon']]){
+reduced=false;set('velvet');set('satin');assert.equal(sandbox.probe().scene,'velvet','removed style must be rejected');
+assert(!html.includes('drawSatinRibbon')&&!html.includes('value="satin"'),'removed renderer and option must stay absent');
+assert.deepEqual(nodes.get('#scene').options.map(o=>o.value),['bloom','orbit','tide','dub','datamosh','cymatic','dice','velvet']);
+for(const [id,label] of [['velvet','Velvet']]){
   assert(html.includes(`<option value="${id}">${label}</option>`));assert(swift.includes(`Text("${label}").tag("${id}")`));
 }
 assert.deepEqual(JSON.parse('['+code.match(/if\(!\[([^\]]+)\]\.includes\(value\)/)[1].replaceAll("'",'"')+']'),styles,'browser guard and shared catalog agree');
@@ -284,7 +276,7 @@ set('bloom');clock+=100;set('orbit');const fadeStart=clock;assert(sandbox.probe(
 // Rebase the cap at transition time, then follow a 60 Hz display for five wall-clock seconds.
 begin(24,fadeStart);for(let i=1;i<300;i++)tick(fadeStart+i*1000/60);
 assert(sandbox.probe().transition,'fade remains active before five seconds');tick(fadeStart+5000);assert.equal(sandbox.probe().transition,null,'24fps fade completes in five wall-clock seconds');
-for(const [w,h] of [[390,844],[320,560],[1440,780],[844,300]])for(const style of ['velvet','satin'])for(const t of [0,1,5,13,50]){
+for(const [w,h] of [[390,844],[320,560],[1440,780],[844,300]])for(const style of ['velvet'])for(const t of [0,1,5,13,50]){
   vm.runInContext(`phase=${t}`,sandbox);const {trace}=materialCapture(style,()=>sandbox.materialFrames[style](w,h,1,1,1,false));
   assert(trace.every(p=>p.path.every(([x,y])=>x>=0&&x<=w&&y>=0&&y<=h)),style+' fitted material must remain inside narrow/desktop viewport');
 }
@@ -292,7 +284,7 @@ assert(swift.includes('Toggle("24fps", isOn: $use24fps)')&&swift.includes('frame
 assert(host.includes('let frameRate: Int')&&host.includes('controller.setFrameRate(frameRate)')&&host.includes('guard value == 0 || value == 24, frameRate != value else { return }'));
 assert(host.includes('window.SONORA.setFrameRate(frameRate); window.SONORA.setPayload(payload)')&&host.includes('"frameRate": frameRate'),'pageReady applies validated pending frame rate');
 console.log('PASS: 24fps scheduled Canvas draws, phase speed, independent reduced motion:',JSON.stringify(counts));
-console.log('PASS: validated browser/native 0/24 toggle, reset/idempotent gate, bounded stalls without backlog, deterministic paused Apple art, unchanged source/seek fps and five-second capped crossfade; fitted material geometry and same-gradient seam seals');
-console.log('PASS: Velvet / Satin Ribbon actual Canvas2D traces: finite viewport-bounded surfaces, fixed 52 fills / 288 quads + 288 seam seals + 3 edges, gradient shading and tapered tips; independent bass/mid/high response, deterministic Apple pause/time/seek, reduced-motion freeze with live bands, stateless resize/source, nine-style browser/native ordering and bidirectional full-cycle wrap; shared all-style transition lifecycle checks retained');
+console.log('PASS: validated browser/native 0/24 toggle, reset/idempotent gate, bounded stalls without backlog, deterministic paused Apple art, unchanged source/seek fps and five-second capped crossfade; fitted Velvet geometry');
+console.log('PASS: Velvet actual Canvas2D traces: finite viewport-bounded surfaces, fixed 52 fills and radial shading; independent bass/mid/high response, deterministic Apple pause/time/seek, reduced-motion freeze with live bands, stateless resize/source, eight-style browser/native ordering and bidirectional full-cycle wrap; shared all-style transition lifecycle checks retained');
 console.log('PASS: Dice translucent teal/coral planes, fine mint/coral pip rings and contours, bounded pale-blue treble echo (actual ctx trace); seven fitted cubes, finite bounded depth-sorted visible faces, fixed 1–6 face-local pips/opposites sum7, shared select/native routing and menu/source picker; deterministic Apple pause/time/seek and reduced-motion rotation freeze with live bands');
 console.log('PASS: Cymatic bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s whole-frame crossfade without tiled sampling, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
