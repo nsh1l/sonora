@@ -74,7 +74,11 @@ const down=(x,y,id=1)=>art.listeners.pointerdown({isPrimary:true,button:0,pointe
 const up=(x,y,id=1)=>art.listeners.pointerup({pointerId:id,clientX:x,clientY:y});
 down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'bloom','nonfullscreen swipe must be ignored');
 fullscreen=true;clock=21000;down(500,200);up(100,200);assert.equal(sandbox.probe().scene,'orbit');assert.equal(sandbox.probe().transition.start,21000);
-copies.length=0;sandbox.frame(23500);assert(sandbox.probe().transition&&copies.some(a=>a.length===9),'5 second fade must contain outgoing block sampling at midpoint');
+copies.length=0;sandbox.frame(23500);
+const fullFrames=copies.filter(a=>a.length===9);
+assert(sandbox.probe().transition&&fullFrames.length===2,'5 second fade must blend exactly two whole frames at midpoint');
+assert.notEqual(fullFrames[0][0],fullFrames[1][0],'outgoing and incoming buffers must both be drawn');
+assert(fullFrames.every(a=>a[1]===0&&a[2]===0&&a[3]===a[0].width&&a[4]===a[0].height&&a[5]===0&&a[6]===0&&a[7]===640&&a[8]===400),'transition must never sample displaced tiles or overdraw tile seams');
 clock=23500;down(100,200);up(500,200);assert.equal(sandbox.probe().scene,'bloom');assert.equal(sandbox.probe().transition.start,23500,'rapid reverse must rebase on current visible frame');
 down(500,100);up(450,400);assert.equal(sandbox.probe().scene,'bloom','vertical gesture must not change pattern');
 down(500,200);up(480,200);assert.equal(sandbox.probe().scene,'bloom','tap/short drag must be ignored');
@@ -174,4 +178,4 @@ assert.deepEqual(JSON.parse('['+host.match(/guard \[([^\]]+)\]\.contains\(value\
 assert.deepEqual([...swift.match(/Picker\("Visual style"[^\n]+/)[0].matchAll(/\.tag\("([^"]+)"\)/g)].map(m=>m[1]),styles,'native menu and web cycle must agree');
 assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.segmented\)/.test(swift));
 console.log('PASS: Dice translucent teal/coral planes, fine mint/coral pip rings and contours, bounded pale-blue treble echo (actual ctx trace); seven fitted cubes, finite bounded depth-sorted visible faces, fixed 1–6 face-local pips/opposites sum7, shared select/native routing and menu/source picker; deterministic Apple pause/time/seek and reduced-motion rotation freeze with live bands');
-console.log('PASS: Cymatic bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s block-mosh fade, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
+console.log('PASS: Cymatic bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s whole-frame crossfade without tiled sampling, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');

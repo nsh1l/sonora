@@ -135,7 +135,7 @@ if(scene==='bloom'){
   // Horizontal contour strata cover the entire field instead of another radial variation.
   for(let row=0;row<31;row++){const y=h*(.11+row*.026),amp=h*(.03+level*.13),bend=Math.sin(row*.32+phase)*amp;ctx.beginPath();ctx.moveTo(0,h);for(let i=0;i<=140;i++){const x=i/140*w,t=i/140,edge=Math.sin(t*Math.PI),wave=Math.sin(t*11+phase*1.4+row*.21)*amp*.34+Math.sin(t*23-phase+row*.35)*highs*amp*.5;ctx.lineTo(x,y+bend*edge+wave*edge+Math.sin(t*4+row*.13)*mids*h*.12)}ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle=`hsla(${row<13?178+row*3:18+row*3},${row<13?57:75}%,${row<13?24:48}%,${.065+row*.002})`;ctx.fill();ctx.strokeStyle=`hsla(${row<13?169:22+row*2},80%,75%,${.1+row*.012})`;ctx.lineWidth=row%5===0?1.5:.7;ctx.stroke()}
 }
-if(sceneTransition)blendScene(now,w,h,bass);
+if(sceneTransition)blendScene(now,w,h);
 }
 // Dice: opposite faces sum to seven; pips live in each face's fixed local basis.
 const dicePips=[[],[[0,0]],[[-.48,-.48],[.48,.48]],[[-.48,-.48],[0,0],[.48,.48]],[[-.48,-.48],[.48,-.48],[-.48,.48],[.48,.48]],[[-.48,-.48],[.48,-.48],[0,0],[-.48,.48],[.48,.48]],[[-.48,-.48],[.48,-.48],[-.48,0],[.48,0],[-.48,.48],[.48,.48]]];
@@ -304,21 +304,15 @@ function drawDatamosh(now,w,h,bass,mids,highs,still,apple){
   ctx.restore();feedback.clearRect(0,0,dubFeedback.width,dubFeedback.height);feedback.drawImage(canvas,0,0);
 }
 // Keep two bounded frames: the visible outgoing image and the current incoming drawing.
-function blendScene(now,w,h,bass){
+function blendScene(now,w,h){
   if(!document.body.classList.contains('visualizer-fullscreen')||matchMedia('(prefers-reduced-motion: reduce)').matches){sceneTransition=null;return;}
   const p=Math.max(0,Math.min(1,(now-sceneTransition.start)/5000));
   if(p>=1){sceneTransition=null;return;}
   const incoming=transitionNew.getContext('2d');incoming.clearRect(0,0,transitionNew.width,transitionNew.height);incoming.drawImage(canvas,0,0);
-  const fade=p*p*(3-2*p),dpr=canvas.width/w;
-  ctx.clearRect(0,0,w,h);ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=1-fade;
-  // Frozen prediction blocks slide away while the new live pattern slowly resolves.
-  const cols=24,rows=Math.min(32,Math.max(8,Math.round(cols*h/w))),bw=w/cols,bh=h/rows;
-  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
-    const strength=Math.sin(p*Math.PI)*(10+bass*25);
-    const sx=Math.max(0,Math.min(w-bw,x*bw+Math.sin(y*.41+p*5)*strength));
-    const sy=Math.max(0,Math.min(h-bh,y*bh+Math.cos(x*.31-p*4)*strength*.35));
-    ctx.drawImage(transitionOld,sx*dpr,sy*dpr,bw*dpr,bh*dpr,x*bw,y*bh,bw+.5,bh+.5);
-  }
+  const fade=p*p*(3-2*p);
+  ctx.clearRect(0,0,w,h);ctx.save();ctx.imageSmoothingEnabled=true;ctx.globalAlpha=1-fade;
+  // Blend complete frames: no tiled displacement or visible grid seams.
+  ctx.drawImage(transitionOld,0,0,transitionOld.width,transitionOld.height,0,0,w,h);
   ctx.globalCompositeOperation='lighter';ctx.globalAlpha=fade;ctx.imageSmoothingEnabled=true;ctx.drawImage(transitionNew,0,0,transitionNew.width,transitionNew.height,0,0,w,h);ctx.restore();
 }
 function stepScene(direction){const options=[...document.querySelector('#scene').options].map(option=>option.value),index=options.indexOf(scene);window.SONORA.setStyle(options[(index+direction+options.length)%options.length]);}
