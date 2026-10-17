@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
-let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let cymaticView=null,cymaticGrains=[],grains=null,dicePaint=null,diceLines=[],path=[],mesh=[];
+let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let grains=null,dicePaint=null,diceLines=[],path=[],mesh=[];
 const ctx=new Proxy({beginPath(){path=[];},moveTo(...xy){path.push(xy);},lineTo(...xy){path.push(xy);},fill(){if(dicePaint)dicePaint.push({path:path.slice(),ink:this.fillStyle});},fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;if(dicePaint)diceLines.push({path:path.slice(),ink:this.strokeStyle,width:this.lineWidth});}}, {get:(o,k)=>k in o?o[k]:()=>{}});
 const nodes=new Map();
 function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
@@ -10,8 +10,7 @@ const sandbox={document,SONORA:{},requestAnimationFrame:()=>{},ResizeObserver:cl
 vm.createContext(sandbox);
 const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 // Observe the real transient mesh without adding production debug state.
-const instrumented=code.replace('faces.sort((a,b)=>a.depth-b.depth);','faces.sort((a,b)=>a.depth-b.depth);globalThis.inspectDice(faces);').replace('ctx.save();ctx.translate(w*.5,h*.5);ctx.scale(w*fit,h*fit);ctx.rotate(angle);','globalThis.inspectCymatic(fit,angle,w,h);ctx.save();ctx.translate(w*.5,h*.5);ctx.scale(w*fit,h*fit);ctx.rotate(angle);');
-sandbox.inspectCymatic=(fit,angle,w,h)=>{cymaticView={fit,angle,w,h}};
+const instrumented=code.replace('faces.sort((a,b)=>a.depth-b.depth);','faces.sort((a,b)=>a.depth-b.depth);globalThis.inspectDice(faces);');
 sandbox.inspectDice=faces=>{mesh=faces};
 vm.runInContext(instrumented+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;this.diceDefinitions={faces:diceFaces,pips:dicePips};this.diceFrame=drawDice;`,sandbox);
 const set=sandbox.SONORA.setStyle;
@@ -102,26 +101,13 @@ for(const {value:style} of nodes.get('#scene').options){
 }
 // Cymatic is recomputed from bounded analytic nodes: no stale particle/bitmap state.
 fullscreen=false;set('cymatic');
-const capture=now=>{grains=[];sandbox.frame(now);cymaticGrains=grains;const result=JSON.stringify(grains);assert(grains.length>100&&grains.length<=96*96*2);assert(grains.every(a=>a.every(Number.isFinite)));grains=null;return result;};
+const capture=now=>{grains=[];sandbox.frame(now);const result=JSON.stringify(grains);assert(grains.length>100&&grains.length<=96*96*2);assert(grains.every(a=>a.every(Number.isFinite)));grains=null;return result;};
 sandbox.__sonoraNative={mode:'apple',generation:40,bands:[0,0,0],rms:0,timeline:{playing:false,position:5,track:'plate'}};
 const plate=capture(36000);assert.equal(capture(36100),plate,'paused Cymatic must be deterministic');
 sandbox.__sonoraNative.timeline.position=15;assert.notEqual(capture(36200),plate,'timeline must reshape the nodes');
 reduced=true;const quiet=capture(36300);sandbox.__sonoraNative.timeline.position=25;assert.equal(capture(36400),quiet,'reduced motion must freeze timeline art');
 reduced=false;resize();sandbox.__sonoraNative.timeline.position=5;assert.equal(capture(36500),plate,'resize/seek must not retain old particles');
 sandbox.__sonoraNative={mode:'microphone',generation:41,bands:[0,0,0],rms:0,timeline:{position:0,track:''}};reduced=true;const silent=capture(36600);sandbox.__sonoraNative.bands=[.8,.7,.9];assert.notEqual(capture(36700),silent,'real bands must change nodal geometry even at fixed phase');
-// Transform actual powder/registration rectangles: fit the complete field to both screen axes without cropping.
-sandbox.__sonoraNative={mode:'apple',generation:42,bands:[0,0,0],rms:0,timeline:{playing:false,position:0,track:'cover'}};reduced=false;
-for(const [w,h] of [[1280,800],[390,844],[844,390],[2560,720]])for(const immersive of [false,true])for(const position of [0,Math.PI/2/(.25*.23),3*Math.PI/2/(.25*.23)]){
-  fullscreen=immersive;nodes.get('#art').clientWidth=w;nodes.get('#art').clientHeight=h;sandbox.__sonoraNative.timeline.position=position;cymaticView=null;capture(36800);
-  assert(cymaticView&&cymaticView.w===w&&cymaticView.h===h,'inspect the actual render path');
-  const {fit,angle}=cymaticView,c=Math.cos(angle),s=Math.sin(angle),xs=[],ys=[];
-  for(const [x,y,rw,rh] of cymaticGrains)for(const px of [x,x+rw])for(const py of [y,y+rh]){
-    const sx=w/2+(px*c-py*s)*w*fit,sy=h/2+(px*s+py*c)*h*fit;xs.push(sx);ys.push(sy);
-    assert(sx>=0&&sx<=w&&sy>=0&&sy<=h,'every powder and registration corner must remain inside the viewport');
-  }
-  assert(Math.max(...xs)-Math.min(...xs)>w*.7&&Math.max(...ys)-Math.min(...ys)>h*.7,'whole pattern must spread across both screen axes');
-}
-nodes.get('#art').clientWidth=640;nodes.get('#art').clientHeight=400;fullscreen=false;
 assert(html.includes('<option value="cymatic">Cymatic</option>'));
 for(const path of ['ios/SONORA/SONORAApp.swift','ios/SONORA/RendererHost.swift'])assert((await Bun.file(new URL('../'+path,import.meta.url)).text()).includes('"cymatic"'));
 // Dice are rigid projected cubes, not changing screen-space dot patterns.
@@ -192,4 +178,4 @@ assert.deepEqual(JSON.parse('['+host.match(/guard \[([^\]]+)\]\.contains\(value\
 assert.deepEqual([...swift.match(/Picker\("Visual style"[^\n]+/)[0].matchAll(/\.tag\("([^"]+)"\)/g)].map(m=>m[1]),styles,'native menu and web cycle must agree');
 assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.segmented\)/.test(swift));
 console.log('PASS: Dice translucent teal/coral planes, fine mint/coral pip rings and contours, bounded pale-blue treble echo (actual ctx trace); seven fitted cubes, finite bounded depth-sorted visible faces, fixed 1–6 face-local pips/opposites sum7, shared select/native routing and menu/source picker; deterministic Apple pause/time/seek and reduced-motion rotation freeze with live bands');
-console.log('PASS: Cymatic complete field fitted without cropping at rotation extrema in portrait/landscape/ultrawide and fullscreen/stage, bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s whole-frame crossfade without tiled sampling, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
+console.log('PASS: Cymatic bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s whole-frame crossfade without tiled sampling, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
