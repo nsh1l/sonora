@@ -11,12 +11,14 @@ struct RendererHost: UIViewControllerRepresentable {
   let mode: RendererMode
   let sensitivity: Double
   let style: String
+  let frameRate: Int
 
   func makeUIViewController(context: Context) -> RendererController { RendererController() }
   func updateUIViewController(_ controller: RendererController, context: Context) {
     controller.loadViewIfNeeded()
     controller.setSensitivity(sensitivity)
     controller.setStyle(style)
+    controller.setFrameRate(frameRate)
     controller.setMode(mode)
   }
   static func dismantleUIViewController(_ controller: RendererController, coordinator: ()) {
@@ -31,6 +33,7 @@ final class RendererController: UIViewController, WKNavigationDelegate {
   private var mode: RendererMode = .idle
   private var generation = 0
   private var style = "bloom"
+  private var frameRate = 0
   private var timer: Timer?
   private var observers: [NSObjectProtocol] = []
   private var active = false
@@ -76,9 +79,15 @@ final class RendererController: UIViewController, WKNavigationDelegate {
 
   func setSensitivity(_ value: Double) { audio.setSensitivity(value) }
   func setStyle(_ value: String) {
-    guard ["bloom", "orbit", "tide", "dub", "datamosh", "cymatic", "dice"].contains(value) else { return }
+    guard ["bloom", "orbit", "tide", "dub", "datamosh", "cymatic", "dice", "velvet", "satin"].contains(value) else { return }
     style = value
     if pageReady { web.callAsyncJavaScript("window.SONORA.setStyle(style)", arguments: ["style": style], in: nil, in: .page) { _ in } }
+  }
+
+  func setFrameRate(_ value: Int) {
+    guard value == 0 || value == 24, frameRate != value else { return }
+    frameRate = value
+    if pageReady { web.callAsyncJavaScript("window.SONORA.setFrameRate(frameRate)", arguments: ["frameRate": frameRate], in: nil, in: .page) { _ in } }
   }
 
   func setMode(_ next: RendererMode) {
@@ -189,7 +198,7 @@ final class RendererController: UIViewController, WKNavigationDelegate {
 
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
     pageReady = true
-    web.callAsyncJavaScript("window.SONORA.setShell(); window.SONORA.setStyle(style); window.SONORA.setPayload(payload)", arguments: ["style": style, "payload": pending], in: nil, in: .page) { _ in }
+    web.callAsyncJavaScript("window.SONORA.setShell(); window.SONORA.setStyle(style); window.SONORA.setFrameRate(frameRate); window.SONORA.setPayload(payload)", arguments: ["style": style, "frameRate": frameRate, "payload": pending], in: nil, in: .page) { _ in }
   }
 
   func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {

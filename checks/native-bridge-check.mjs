@@ -33,7 +33,7 @@ class Element {
   fire(name){for(const fn of this.listeners[name]??[])fn({target:this});}
   replaceChildren(){} setAttribute(){} matches(){return false;}
 }
-const elements=new Map(['art','audio','audioFile','play','seek','state','welcome','trackName','trackSub','back','forward','duration','current','scene','sampleTrack'].map(id=>[id,new Element()]));
+const elements=new Map(['art','audio','audioFile','play','seek','state','welcome','trackName','trackSub','back','forward','duration','current','scene','sampleTrack','frameRate'].map(id=>[id,new Element()]));
 const traces=[],paints=[]; const canvas=elements.get('art');
 const context={save(){},restore(){},translate(){},rotate(){},fillRect(){},clearRect(){},setTransform(){},beginPath(){},moveTo(x,y){traces.push([x,y]);},lineTo(x,y){traces.push([x,y]);},closePath(){},fill(){paints.push(["fill",this.globalCompositeOperation,this.fillStyle]);},stroke(){paints.push(["stroke",this.lineWidth]);},quadraticCurveTo(){},arc(){}};
 canvas.getContext=()=>context;canvas.getBoundingClientRect=()=>({width:300,height:200});canvas.clientWidth=300;canvas.clientHeight=200;

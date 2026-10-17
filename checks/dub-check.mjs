@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const html=await Bun.file(new URL('../index.html',import.meta.url)).text();
-let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let grains=null,dicePaint=null,diceLines=[],path=[],mesh=[];
-const ctx=new Proxy({beginPath(){path=[];},moveTo(...xy){path.push(xy);},lineTo(...xy){path.push(xy);},fill(){if(dicePaint)dicePaint.push({path:path.slice(),ink:this.fillStyle});},fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){strokes++;if(dicePaint)diceLines.push({path:path.slice(),ink:this.strokeStyle,width:this.lineWidth});}}, {get:(o,k)=>k in o?o[k]:()=>{}});
+let clears=0,images=0,strokes=0,reduced=false,resize,fullscreen=false,clock=0;const copies=[];let grains=null,dicePaint=null,diceLines=[],path=[],mesh=[],material=null;
+const gradient=(kind,args)=>{const stops=[];return {kind,args,stops,addColorStop(offset,color){stops.push([offset,color]);}};};
+const ctx=new Proxy({beginPath(){path=[];},moveTo(...xy){path.push(xy);},lineTo(...xy){path.push(xy);},createRadialGradient(...args){return gradient('radial',args);},createLinearGradient(...args){return gradient('linear',args);},fill(){if(material)material.push({op:'fill',path:path.slice(),ink:this.fillStyle,alpha:this.globalAlpha});if(dicePaint)dicePaint.push({path:path.slice(),ink:this.fillStyle});},fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){if(material)material.push({op:'stroke',path:path.slice(),ink:this.strokeStyle,width:this.lineWidth,alpha:this.globalAlpha});strokes++;if(dicePaint)diceLines.push({path:path.slice(),ink:this.strokeStyle,width:this.lineWidth});}}, {get:(o,k)=>k in o?o[k]:()=>{}});
 const nodes=new Map();
 function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
 const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>fullscreen}}};
@@ -12,7 +13,7 @@ const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 // Observe the real transient mesh without adding production debug state.
 const instrumented=code.replace('faces.sort((a,b)=>a.depth-b.depth);','faces.sort((a,b)=>a.depth-b.depth);globalThis.inspectDice(faces);');
 sandbox.inspectDice=faces=>{mesh=faces};
-vm.runInContext(instrumented+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;this.diceDefinitions={faces:diceFaces,pips:dicePips};this.diceFrame=drawDice;`,sandbox);
+vm.runInContext(instrumented+`\nthis.probe=()=>({scene,length:dubHistory.length,transient:dubTransient,taps:dubHistory.map(x=>x.now),mosh:moshLast,burst:moshBurst,key:moshKey,triggerTime:moshTriggerTime,transition:sceneTransition});this.frame=draw;this.diceDefinitions={faces:diceFaces,pips:dicePips};this.diceFrame=drawDice;this.materialFrames={velvet:drawVelvet,satin:drawSatinRibbon};`,sandbox);
 const set=sandbox.SONORA.setStyle;
 set('dub');assert.equal(sandbox.probe().scene,'dub');
 sandbox.__sonoraNative={mode:'microphone',generation:1,bands:[.8,.5,.7],rms:.6,timeline:{position:0,track:''}};
@@ -177,5 +178,121 @@ const styles=nodes.get('#scene').options.map(o=>o.value),host=await Bun.file(new
 assert.deepEqual(JSON.parse('['+host.match(/guard \[([^\]]+)\]\.contains\(value\)/)[1]+']'),styles,'native guard and web cycle must agree');
 assert.deepEqual([...swift.match(/Picker\("Visual style"[^\n]+/)[0].matchAll(/\.tag\("([^"]+)"\)/g)].map(m=>m[1]),styles,'native menu and web cycle must agree');
 assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.segmented\)/.test(swift));
+// Actual Canvas2D material paint: broad feathered planes versus filled, tapered fabric strips.
+fullscreen=false;reduced=false;
+const materialCapture=(style,drawFrame)=>{
+  material=[];drawFrame();const trace=material;material=null;
+  const fills=trace.filter(p=>p.op==='fill'),lines=trace.filter(p=>p.op==='stroke');
+  assert.equal(fills.length,style==='velvet'?52:288,style+' fixed surface budget');
+  assert.equal(lines.length,style==='velvet'?0:291,style+' is surface-led, not generic linewaves');
+  assert(fills.every(p=>p.path.length===(style==='velvet'?97:4)));
+  assert(trace.every(p=>p.path.every(xy=>xy.every(Number.isFinite))));
+  assert(trace.every(p=>Number.isFinite(p.alpha)&&p.alpha>0&&p.alpha<=1));
+  const gradients=fills.filter(p=>typeof p.ink==='object');
+  assert.equal(gradients.length,style==='velvet'?48:288);
+  for(const {ink} of gradients){
+    assert.equal(ink.kind,style==='velvet'?'radial':'linear');assert(ink.args.every(Number.isFinite));
+    assert(ink.stops.length>=3&&ink.stops.every(([n,color])=>Number.isFinite(n)&&n>=0&&n<=1&&!/NaN|Infinity/.test(color)));
+  }
+  if(style==='velvet')assert(fills.every(p=>p.alpha<=.042),'velour feather shells remain translucent');
+  else {const seals=lines.filter(p=>typeof p.ink==='object'),edges=lines.filter(p=>typeof p.ink==='string');assert.equal(seals.length,288);assert(seals.every((p,i)=>p.width===.75&&p.ink===fills[i].ink&&JSON.stringify(p.path)===JSON.stringify(fills[i].path)),'each quad seals its antialias seam with the same gradient');assert.equal(edges.length,3);assert(edges.every(p=>p.width===.7&&Number(p.ink.match(/,([\d.]+)\)$/)[1])<=.19),'satin edge highlights stay restrained');}
+  return {trace,json:JSON.stringify(trace)};
+};
+for(const style of ['velvet','satin']){
+  reduced=false;
+  nodes.get('#scene').listeners.change({target:{value:style}});assert.equal(sandbox.probe().scene,style);assert.equal(nodes.get('#scene').value,style);
+  sandbox.__sonoraNative={mode:'apple',generation:60,bands:[0,0,0],rms:0,timeline:{playing:false,position:5,track:'fabric'}};
+  const capture=now=>materialCapture(style,()=>sandbox.frame(now)).json;
+  const paused=capture(40000);assert.equal(capture(45000),paused,style+' Apple pause must not drift');
+  sandbox.__sonoraNative.timeline.position=15;assert.notEqual(capture(45100),paused,style+' follows Apple position');
+  reduced=true;const frozen=capture(45200);sandbox.__sonoraNative.timeline.position=25;assert.equal(capture(49900),frozen,style+' reduced motion freezes timeline');
+  reduced=false;resize();sandbox.__sonoraNative.timeline.position=5;assert.equal(capture(50000),paused,style+' resize/seek has no retained fabric');
+  sandbox.__sonoraNative.generation++;sandbox.__sonoraNative.timeline.track='new-fabric';assert.equal(capture(50100),paused,style+' source switch has no retained fabric');
+  sandbox.__sonoraNative={mode:'microphone',generation:62,bands:[0,0,0],rms:0,timeline:{position:0,track:''}};
+  reduced=true;const silent=capture(50200);assert.equal(capture(55000),silent,style+' live-source reduced motion freezes phase and drift');
+  for(let band=0;band<3;band++){
+    sandbox.__sonoraNative.bands=[0,0,0];sandbox.__sonoraNative.bands[band]=.9;
+    assert.notEqual(capture(55100+band),silent,style+' retains independent band '+band+' response at fixed phase');
+  }
+  for(const [w,h] of [[320,560],[390,300],[1440,780],[844,300]])for(const phase of [0,1,5,13,50])for(const bands of [[0,0,0],[1,1,1]]){
+    vm.runInContext(`phase=${phase}`,sandbox);
+    const {trace}=materialCapture(style,()=>sandbox.materialFrames[style](w,h,...bands,false));
+    assert(trace.every(p=>p.path.every(([x,y])=>x>=-w&&x<=w*2&&y>=-h&&y<=h*2)),style+' coordinates remain viewport-bounded');
+    if(style==='satin'){
+      const fills=trace.filter(p=>p.op==='fill');
+      for(let strip=0;strip<3;strip++){
+        const first=fills[strip*96].path,last=fills[strip*96+95].path;
+        assert(Math.hypot(first[0][0]-first[3][0],first[0][1]-first[3][1])<1e-6);
+        assert(Math.hypot(last[1][0]-last[2][0],last[1][1]-last[2][1])<1e-6,'strip tips taper to zero');
+      }
+    }
+  }
+  assert.equal(sandbox.probe().length,0);assert.equal(sandbox.probe().mosh,null,'new materials use no histories');
+}
+reduced=false;
+assert.deepEqual(nodes.get('#scene').options.map(o=>o.value),['bloom','orbit','tide','dub','datamosh','cymatic','dice','velvet','satin']);
+for(const [id,label] of [['velvet','Velvet'],['satin','Satin Ribbon']]){
+  assert(html.includes(`<option value="${id}">${label}</option>`));assert(swift.includes(`Text("${label}").tag("${id}")`));
+}
+assert.deepEqual(JSON.parse('['+code.match(/if\(!\[([^\]]+)\]\.includes\(value\)/)[1].replaceAll("'",'"')+']'),styles,'browser guard and shared catalog agree');
+// Traverse every expanded-cycle destination, then wrap in each direction (existing gesture mocks).
+fullscreen=true;set('bloom');
+for(let i=1;i<=styles.length;i++){down(500,200);up(100,200);assert.equal(sandbox.probe().scene,styles[i%styles.length]);}
+for(let i=1;i<=styles.length;i++){down(100,200);up(500,200);assert.equal(sandbox.probe().scene,styles[(styles.length-i)%styles.length]);}
+// Exercise actual scheduled draw callbacks and Canvas paint, not just the pacing arithmetic.
+let nextRAF,scheduled=0;
+sandbox.requestAnimationFrame=callback=>{nextRAF=callback;scheduled++;};
+vm.runInContext('this.pacing=()=>({frameRate,frameOrigin,frameBucket,lastFrame,phase});',sandbox);
+fullscreen=false;set('bloom');
+const fpsButton=nodes.get('#frameRate'),attrs={};fpsButton.setAttribute=(key,value)=>attrs[key]=value;
+assert(html.includes('id="frameRate" type="button" aria-pressed="false">24fps</button>'));
+assert.equal(sandbox.pacing().frameRate,0,'default remains automatic rAF');
+const tick=t=>{clock=t;nextRAF(t);};
+const begin=(fps,start)=>{clock=start;sandbox.SONORA.setFrameRate(fps===24?0:24);sandbox.SONORA.setFrameRate(fps);nextRAF=sandbox.frame;tick(start);};
+const counts=[];
+for(const hz of [60,120])for(const fps of [0,24])for(const quiet of [false,true]){
+  reduced=quiet;sandbox.__sonoraNative={mode:'microphone',generation:80,bands:[.4,.3,.2],rms:.2,timeline:{position:0,track:''}};
+  const start=clock+10000;begin(fps,start);const beforePaint=strokes,beforeRAF=scheduled,phaseBefore=sandbox.pacing().phase;
+  for(let i=1;i<=hz*2;i++)tick(start+i*1000/hz);
+  const draws=(strokes-beforePaint)/43,elapsed=sandbox.pacing().phase-phaseBefore;
+  assert.equal(draws,(fps||hz)*2,`${hz}Hz/${fps} actual painted frames, reduced=${quiet}`);
+  assert.equal(scheduled-beforeRAF,hz*2,'even skipped callbacks must schedule the next rAF');
+  const expected=quiet?0:2000/16.67*(.003+.4*.013);
+  assert(Math.abs(elapsed-expected)<1e-8,'24fps must retain auto elapsed phase speed, not the old cap-2 slowdown');
+  counts.push({hz,fps,reduced:quiet,draws,phaseDelta:Number(elapsed.toFixed(9))});
+}
+reduced=false;begin(24,clock+10000);const accepted=sandbox.pacing();
+for(const bad of [-1,23,30,60,'24',NaN,Infinity,null,undefined])sandbox.SONORA.setFrameRate(bad);
+assert.deepEqual(sandbox.pacing(),accepted,'shared boundary rejects everything except numeric 0/24');
+assert.equal(attrs['aria-pressed'],'true');
+const gate=clock;tick(gate+1);assert.equal(sandbox.pacing().lastFrame,gate,'same bucket skips render work');
+sandbox.SONORA.setFrameRate(24);tick(gate+2);assert.equal(sandbox.pacing().lastFrame,gate,'same mode must not reset pacing on native updates');
+fpsButton.listeners.click();assert.equal(sandbox.pacing().frameRate,0);assert.equal(attrs['aria-pressed'],'false');tick(gate+3);assert.equal(sandbox.pacing().lastFrame,gate+3);
+fpsButton.listeners.click();assert.equal(sandbox.pacing().frameRate,24);assert.equal(sandbox.pacing().frameOrigin,null);tick(gate+4);assert.equal(sandbox.pacing().lastFrame,gate+4,'mode switch resets gate immediately');
+const beforeStall=sandbox.pacing().phase;tick(gate+10004);assert(sandbox.pacing().phase-beforeStall<=4*(.003+.4*.013)+1e-8,'stall delta remains bounded');
+const paintAfterStall=strokes;tick(gate+10005);tick(gate+10006);assert.equal(strokes,paintAfterStall,'resume must not replay missed frames');
+for(const fps of [0,24]){
+  reduced=false;sandbox.__sonoraNative={mode:'apple',generation:81,bands:[0,0,0],rms:0,timeline:{playing:false,position:7,track:'paced'}};
+  begin(fps,clock+10000);tick(clock+100);assert.equal(sandbox.pacing().phase,1.75);tick(clock+1000);assert.equal(sandbox.pacing().phase,1.75,'paused Apple art holds at either rate');
+  sandbox.__sonoraNative.timeline.position=11;tick(clock+100);assert.equal(sandbox.pacing().phase,2.75,'Apple time is not integrated from frame count');
+  reduced=true;tick(clock+100);sandbox.__sonoraNative.timeline.position=15;tick(clock+100);assert.equal(sandbox.pacing().phase,0,'reduced-motion Apple art stays deterministic at either rate');
+}
+reduced=false;begin(24,clock+10000);nodes.get('#audio').listeners.seeking();sandbox.__sonoraNative.generation++;tick(clock+100);
+assert.equal(sandbox.pacing().frameRate,24,'source/seek must not change selected fps');
+fullscreen=true;sandbox.__sonoraNative={mode:'microphone',generation:90,bands:[.4,.3,.2],rms:.2,timeline:{position:0,track:''}};
+set('bloom');clock+=100;set('orbit');const fadeStart=clock;assert(sandbox.probe().transition);
+// Rebase the cap at transition time, then follow a 60 Hz display for five wall-clock seconds.
+begin(24,fadeStart);for(let i=1;i<300;i++)tick(fadeStart+i*1000/60);
+assert(sandbox.probe().transition,'fade remains active before five seconds');tick(fadeStart+5000);assert.equal(sandbox.probe().transition,null,'24fps fade completes in five wall-clock seconds');
+for(const [w,h] of [[390,844],[320,560],[1440,780],[844,300]])for(const style of ['velvet','satin'])for(const t of [0,1,5,13,50]){
+  vm.runInContext(`phase=${t}`,sandbox);const {trace}=materialCapture(style,()=>sandbox.materialFrames[style](w,h,1,1,1,false));
+  assert(trace.every(p=>p.path.every(([x,y])=>x>=0&&x<=w&&y>=0&&y<=h)),style+' fitted material must remain inside narrow/desktop viewport');
+}
+assert(swift.includes('Toggle("24fps", isOn: $use24fps)')&&swift.includes('frameRate: use24fps ? 24 : 0'));
+assert(host.includes('let frameRate: Int')&&host.includes('controller.setFrameRate(frameRate)')&&host.includes('guard value == 0 || value == 24, frameRate != value else { return }'));
+assert(host.includes('window.SONORA.setFrameRate(frameRate); window.SONORA.setPayload(payload)')&&host.includes('"frameRate": frameRate'),'pageReady applies validated pending frame rate');
+console.log('PASS: 24fps scheduled Canvas draws, phase speed, independent reduced motion:',JSON.stringify(counts));
+console.log('PASS: validated browser/native 0/24 toggle, reset/idempotent gate, bounded stalls without backlog, deterministic paused Apple art, unchanged source/seek fps and five-second capped crossfade; fitted material geometry and same-gradient seam seals');
+console.log('PASS: Velvet / Satin Ribbon actual Canvas2D traces: finite viewport-bounded surfaces, fixed 52 fills / 288 quads + 288 seam seals + 3 edges, gradient shading and tapered tips; independent bass/mid/high response, deterministic Apple pause/time/seek, reduced-motion freeze with live bands, stateless resize/source, nine-style browser/native ordering and bidirectional full-cycle wrap; shared all-style transition lifecycle checks retained');
 console.log('PASS: Dice translucent teal/coral planes, fine mint/coral pip rings and contours, bounded pale-blue treble echo (actual ctx trace); seven fitted cubes, finite bounded depth-sorted visible faces, fixed 1–6 face-local pips/opposites sum7, shared select/native routing and menu/source picker; deterministic Apple pause/time/seek and reduced-motion rotation freeze with live bands');
 console.log('PASS: Cymatic bounded finite powder geometry, band response, Apple pause/timeline/reduced motion, stateless resize and native routing; all destinations cancel transitions on native source/track/timeline and browser seeking; fullscreen swipe direction/wrap/gesture rejection, 5s whole-frame crossfade without tiled sampling, rapid reversal and lifecycle cancellation; Datamosh 40–250Hz onset, sustained-note suppression, hysteresis/cooldown, browser Hz mapping, silence/no Apple false triggers; Datamosh bounded block advection, source/reset/reduced motion and native routing; Dub feedback, delayed ribbons, bounded history, shared routing, reset, reduced motion, paused Apple art, and native source wiring');
