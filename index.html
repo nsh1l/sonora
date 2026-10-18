@@ -40,40 +40,86 @@
 
 @media(prefers-reduced-motion:reduce){.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle,.fullscreen-exit{transition:none!important}body.visualizer-fullscreen .top,body.visualizer-fullscreen .visual-label,body.visualizer-fullscreen .stage-copy,body.visualizer-fullscreen .bottom,body.visualizer-fullscreen .pwa-install,body.visualizer-fullscreen .fullscreen-toggle{transform:none}}
 </style>
+<style>
+.credits-trigger{position:absolute;z-index:12;top:16px;left:clamp(18px,4vw,68px);min-height:44px;padding:0 14px;border:1px solid transparent;border-radius:999px;background:rgba(8,11,18,.68);color:var(--dim);font-size:12px;cursor:pointer}.credits-trigger:hover{color:var(--mint);border-color:var(--line)}.visual-label{top:76px}body.visualizer-fullscreen .credits-trigger{position:fixed;top:max(16px,env(safe-area-inset-top));left:max(16px,env(safe-area-inset-left))}
+.credits-overlay[hidden]{display:none}.credits-overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;overflow:auto;padding:calc(80px + env(safe-area-inset-top)) max(28px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(28px,env(safe-area-inset-left));background:rgba(8,11,18,.58);color:var(--ink);text-align:center}.credits-text{width:min(100%,860px);margin:auto;filter:url(#creditsWarp);text-shadow:0 2px 12px #080b12}.credits-text h2{margin:0 auto 48px;max-width:23ch;font-size:clamp(26px,4.5vw,52px);font-weight:530;letter-spacing:-.035em;line-height:1.15;text-wrap:balance}.credits-text h3{margin:32px 0 12px;color:var(--mint);font-size:12px;line-height:1.5;font-weight:500;letter-spacing:.04em}.credits-text p{margin:0;font-size:clamp(19px,3vw,30px);line-height:1.5;font-weight:400;overflow-wrap:break-word;text-wrap:balance}.credits-close{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));min-height:44px;padding:0 18px;border:1px solid var(--line);border-radius:999px;background:var(--void);cursor:pointer}.credits-close:hover{border-color:var(--mint);color:var(--mint)}.credits-filter{position:absolute;width:0;height:0;pointer-events:none}body.credits-open .fullscreen-hint{display:none}body.credits-open .credits-trigger{visibility:hidden}
+@media(prefers-reduced-motion:reduce){.credits-text{filter:none}}
+</style>
 </head>
 <body>
 <!-- THESIS: A track becomes a changing drawing, not a spectrum meter or decorative halo. OWN-WORLD: Midnight field, ink-like color planes, spectral threads, mint playback signal, coral state lamp. STORY: Choose audio, listen, and move among eight different visual instruments. FIRST VIEWPORT: The artwork occupies the entire stage; a small title rests in its lower-left quiet zone and transport lives in the bottom rail. FORM: Independent generative visual instrument, not a reproduction of G-Force. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
 <main class="shell">
-<header class="top"><div class="brand">S<span>O</span>NORA</div><div class="tag">A living instrument for sound</div></header>
-<section class="stage" aria-label="Audio visualization">
-<canvas id="art" aria-hidden="true"></canvas><div class="visual-label" id="state" role="status" aria-live="polite">AWAITING A TRACK</div>
-<div class="stage-copy" id="welcome"><h1>Sound,<br>in motion.</h1><p>Bring a track. Watch it become something else.</p></div>
-<button class="fullscreen-toggle" id="fullscreenToggle" type="button" aria-label="Enter visualizer fullscreen" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg><span class="sr-only">Fullscreen visualizer</span></button>
-<button class="fullscreen-exit" id="fullscreenExit" type="button" aria-label="Exit visualizer fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h2v4h4v2H6zm6 10h2v4h4v2h-6zm6-8h-4V4h6v6h-2zM4 14h2v4h4v2H4z"/></svg><span class="sr-only">Exit fullscreen</span></button>
-<p class="fullscreen-hint" id="fullscreenHint">左右にスワイプしてパターンを切り替え</p>
+<header class="top"><div class="brand">S<span>O</span>NORA</div><div class="tag" data-i18n="brand.tagline">A living instrument for sound</div></header>
+<section class="stage" aria-label="Audio visualization" data-i18n-aria-label="stage.label">
+<button class="credits-trigger" id="creditsTrigger" type="button" aria-haspopup="dialog" data-i18n="credits.open">Credits</button>
+<canvas id="art" aria-hidden="true"></canvas><div class="visual-label" id="state" role="status" aria-live="polite" data-i18n="state.awaiting">AWAITING A TRACK</div>
+<div class="stage-copy" id="welcome"><h1><span data-i18n="welcome.sound">Sound,</span><br><span data-i18n="welcome.motion">in motion.</span></h1><p data-i18n="welcome.description">Bring a track. Watch it become something else.</p></div>
+<button class="fullscreen-toggle" id="fullscreenToggle" type="button" aria-label="Enter visualizer fullscreen" data-i18n-aria-label="fullscreen.enter" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg><span class="sr-only" data-i18n="fullscreen.label">Fullscreen visualizer</span></button>
+<button class="fullscreen-exit" id="fullscreenExit" type="button" aria-label="Exit visualizer fullscreen" data-i18n-aria-label="fullscreen.exit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h2v4h4v2H6zm6 10h2v4h4v2h-6zm6-8h-4V4h6v6h-2zM4 14h2v4h4v2H4z"/></svg><span class="sr-only" data-i18n="fullscreen.exitLabel">Exit fullscreen</span></button>
+<p class="fullscreen-hint" id="fullscreenHint" data-i18n="fullscreen.hint">Swipe left or right to change patterns</p>
 </section>
 <footer class="bottom">
-<div class="track"><div class="track-name" id="trackName">No track loaded</div><div class="track-sub" id="trackSub">Your audio stays in this browser.</div></div>
+<div class="track"><div class="track-name" id="trackName" data-i18n="track.empty">No track loaded</div><div class="track-sub" id="trackSub" data-i18n="track.privacy">Your audio stays in this browser.</div></div>
 <div class="transport"><div class="controls">
-<button class="icon-btn" id="back" aria-label="Restart" disabled><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3 6 10 6V6z"/></svg></button>
-<button class="icon-btn play" id="play" aria-label="Play" disabled><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-<button class="icon-btn" id="forward" aria-label="Skip to end" disabled><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM5 6v12l10-6z"/></svg></button>
-</div><label class="seek"><span id="current">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" disabled><span id="duration">0:00</span></label></div>
-<div class="tools"><button class="file-btn" id="frameRate" type="button" aria-pressed="false">24fps</button><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*,.flac,audio/flac,audio/x-flac"><label class="sr-only" for="scene">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option><option value="cymatic">Cymatic</option><option value="dice">Dice</option><option value="velvet">Velvet</option></select></div><div class="hint">Local files stay on-device.<br>Sample streams online.</div></div>
+<button class="icon-btn" id="back" aria-label="Restart" data-i18n-aria-label="transport.restart" disabled><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3 6 10 6V6z"/></svg></button>
+<button class="icon-btn play" id="play" aria-label="Play" data-i18n-aria-label="transport.play" disabled><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+<button class="icon-btn" id="forward" aria-label="Skip to end" data-i18n-aria-label="transport.end" disabled><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM5 6v12l10-6z"/></svg></button>
+</div><label class="seek"><span id="current">0:00</span><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek" data-i18n-aria-label="transport.seek" disabled><span id="duration">0:00</span></label></div>
+<div class="tools"><button class="file-btn" id="frameRate" type="button" aria-pressed="false">24fps</button><button class="file-btn" id="sampleTrack" type="button">▶ So1loh — September 14</button><label class="file-btn" for="audioFile" data-i18n="audio.choose">＋ Choose audio</label><input id="audioFile" type="file" accept="audio/*,.mp3,.aac,.m4a,.mp4,.wav,.wave,.flac,.ogg,.oga,.opus,.webm,.weba,audio/mpeg,audio/aac,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/ogg,audio/opus,audio/webm,video/mp4,video/webm"><label class="sr-only" for="scene" data-i18n="style.label">Visual style</label><div class="select-wrap"><select id="scene"><option value="bloom">Bloom</option><option value="orbit">Orbit</option><option value="tide">Tide</option><option value="dub">Dub</option><option value="datamosh">Datamosh</option><option value="cymatic">Cymatic</option><option value="dice">Dice</option><option value="velvet">Velvet</option></select></div><div class="hint"><span data-i18n="audio.formats">MP3 · AAC/M4A · WAV · FLAC · Ogg/Opus</span><br><span data-i18n="audio.localHint">Local files stay on-device.</span><br><span data-i18n="audio.sampleHint">Sample streams online.</span></div></div>
 </footer>
 </main>
-<aside class="pwa-install" aria-label="Install SONORA"><button id="installApp" hidden>Install SONORA</button><span id="installHint" role="status">iPhone: Share → Add to Home Screen · Offline files must be selected again after reopening.</span></aside>
+<aside class="pwa-install" aria-label="Install SONORA" data-i18n-aria-label="pwa.install"><button id="installApp" hidden data-i18n="pwa.install">Install SONORA</button><span id="installHint" role="status" data-i18n="pwa.hint">iPhone: Share → Add to Home Screen · Offline files must be selected again after reopening.</span></aside>
+<section class="credits-overlay" id="creditsDialog" role="dialog" aria-modal="true" aria-labelledby="creditsTitle" hidden>
+<svg class="credits-filter" aria-hidden="true"><defs><filter id="creditsWarp" x="-15%" y="-20%" width="130%" height="140%" color-interpolation-filters="sRGB"><feTurbulence id="creditsNoise" type="fractalNoise" baseFrequency=".012 .026" numOctaves="2" seed="7" result="noise"/><feDisplacementMap id="creditsDisplacement" in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter></defs></svg>
+<div class="credits-text">
+<h2 id="creditsTitle">SONORA — <span data-i18n="credits.title">A living instrument for sound</span></h2>
+<h3 data-i18n="credits.concept">Concept & creative direction</h3>
+<p>So1loh / Always Yesterday Party</p>
+<h3 data-i18n="credits.development">Development assistance</h3>
+<p>Hermes agent / Codex</p>
+</div>
+<button class="credits-close" id="creditsClose" type="button" data-i18n="credits.close">Close credits</button>
+</section>
+<script src="i18n.js"></script>
+<script>window.SONORA_I18N.apply(document);</script>
 <script type="module">if(['https:','http:'].includes(location.protocol))import('/pwa.mjs');</script>
 <audio id="audio" crossorigin="anonymous"></audio>
 <script src="native-bridge.js"></script>
 <script>
-(()=>{const stage=document.documentElement,toggle=document.querySelector('#fullscreenToggle'),exit=document.querySelector('#fullscreenExit'),chrome=[document.querySelector('.top'),document.querySelector('#state'),document.querySelector('#welcome'),document.querySelector('.bottom'),document.querySelector('.pwa-install'),toggle].filter(Boolean);let immersive=false,wantsFullscreen=false;
+(()=>{const stage=document.documentElement,toggle=document.querySelector('#fullscreenToggle'),exit=document.querySelector('#fullscreenExit'),chrome=[document.querySelector('.top'),document.querySelector('#state'),document.querySelector('#welcome'),document.querySelector('.bottom'),document.querySelector('.pwa-install'),toggle].filter(Boolean);
+const trigger=document.querySelector('#creditsTrigger'),dialog=document.querySelector('#creditsDialog'),close=document.querySelector('#creditsClose'),displacement=document.querySelector('#creditsDisplacement'),noise=document.querySelector('#creditsNoise'),main=document.querySelector('main'),install=document.querySelector('.pwa-install');
+let immersive=false,wantsFullscreen=false,credits=false,priorFullscreen=false,envelope=0,warpTime=0,warpLast=null,warpSource='',returnTarget=toggle;
 const setInert=(node,value)=>{node.inert=value;node.toggleAttribute('inert',value);if(value)node.setAttribute('aria-hidden','true');else node.removeAttribute('aria-hidden')};
-const restoreFocus=()=>{if(!immersive)toggle.focus?.({preventScroll:true})};
-function render(active,returnFocus=false){immersive=active;document.body.classList.toggle('visualizer-fullscreen',active);toggle.setAttribute('aria-pressed',String(active));toggle.setAttribute('aria-label',active?'Exit visualizer fullscreen':'Enter visualizer fullscreen');chrome.forEach(node=>setInert(node,active));setInert(exit,!active);if(active)exit.focus?.({preventScroll:true});else if(returnFocus)restoreFocus()}
-function leave(){wantsFullscreen=false;if(document.fullscreenElement===stage&&document.exitFullscreen)document.exitFullscreen()?.catch(()=>{});render(false,true)}
-function enter(){if(immersive)return;wantsFullscreen=true;render(true);if(!stage.requestFullscreen)return;try{const pending=stage.requestFullscreen();pending?.catch(()=>{if(wantsFullscreen&&!document.fullscreenElement)render(true)})}catch(_){if(wantsFullscreen)render(true)}}
-toggle.addEventListener('click',enter);exit.addEventListener('click',leave);document.addEventListener('keydown',event=>{if(event.key==='Escape'&&immersive)leave()});document.addEventListener('fullscreenchange',()=>{const native=document.fullscreenElement===stage;if(native&&!wantsFullscreen){document.exitFullscreen?.();return}wantsFullscreen=native;render(native,!native)});render(false)})();
+const restoreFocus=()=>{if(!immersive)returnTarget.focus?.({preventScroll:true})};
+function render(active,returnFocus=false){immersive=active;document.body.classList.toggle('visualizer-fullscreen',active);toggle.setAttribute('aria-pressed',String(active));toggle.setAttribute('aria-label',active?window.SONORA_I18N.t('fullscreen.exit'):window.SONORA_I18N.t('fullscreen.enter'));chrome.forEach(node=>setInert(node,active));setInert(exit,!active||credits);if(credits){setInert(main,true);setInert(install,true);}if(active&&!credits)exit.focus?.({preventScroll:true});else if(returnFocus&&!credits)restoreFocus()}
+function leave(returnFocus=true){wantsFullscreen=false;render(false,returnFocus);if(document.fullscreenElement===stage&&document.exitFullscreen)document.exitFullscreen()?.catch(()=>{});}
+function enter(){if(immersive)return;returnTarget=credits?trigger:toggle;wantsFullscreen=true;render(true);if(!stage.requestFullscreen)return;try{stage.requestFullscreen()?.catch(()=>{/* CSS fullscreen is already active; a late rejection must not steal focus. */});}catch(_){/* Unsupported/denied native fullscreen keeps the same CSS fallback. */}}
+function clearWarp(){envelope=0;warpTime=0;warpLast=null;warpSource='';displacement.setAttribute('scale','0');noise.setAttribute('baseFrequency','.012 .026');}
+function closeCredits(restore=true){if(!credits)return;credits=false;returnTarget=trigger;dialog.hidden=true;document.body.classList.toggle('credits-open',false);setInert(main,false);setInert(install,false);clearWarp();if(restore&&priorFullscreen)render(true);else leave(false);trigger.focus?.({preventScroll:true});}
+trigger.addEventListener('click',()=>{if(credits)return;priorFullscreen=immersive;credits=true;dialog.hidden=false;document.body.classList.toggle('credits-open',true);clearWarp();enter();render(true);close.focus?.({preventScroll:true});});
+close.addEventListener('click',()=>closeCredits());
+// Called only by the existing admitted drawing path: no second clock or audio graph.
+window.SONORA.updateCredits=(now,bass,mids,highs,still,phase,native,audio)=>{
+if(!credits)return;
+const source=native?`${native.mode}:${native.generation}:${native.timeline?.track||''}`:(audio.src||'idle');
+if(source!==warpSource){clearWarp();warpSource=source;}
+if(still){clearWarp();warpSource=source;return;}
+const elapsed=warpLast===null?16.67:Math.max(0,Math.min(80,now-warpLast));warpLast=now;
+const clamp=value=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
+const drive=clamp(bass)*.55+clamp(mids)*.3+clamp(highs)*.15;
+if(native?.mode==='apple'){
+  // Playback-position art only: deterministic deformation, including a held paused timeline.
+  envelope=drive;warpTime=phase;
+}else{
+  const live=native?.mode==='microphone'||(!native&&!audio.paused);
+  const target=live?drive:0;envelope+=(target-envelope)*(1-Math.exp(-elapsed/180));
+  if(envelope<.001)envelope=0;
+  if(target>.001)warpTime+=elapsed*.00035;
+}
+displacement.setAttribute('scale',(Math.min(6,envelope*6)).toFixed(3));
+noise.setAttribute('baseFrequency',`${(.012+Math.sin(warpTime)*.002).toFixed(5)} ${(.026+Math.cos(warpTime*.7)*.003).toFixed(5)}`);
+};
+toggle.addEventListener('click',()=>{if(!credits)enter()});exit.addEventListener('click',()=>{if(!credits)leave()});document.addEventListener('keydown',event=>{if(credits){if(event.key==='Escape'){event.preventDefault();closeCredits();}else if(event.key==='Tab'){event.preventDefault();close.focus?.({preventScroll:true});}return;}if(event.key==='Escape'&&immersive)leave()});document.addEventListener('fullscreenchange',()=>{const native=document.fullscreenElement===stage;if(native&&!wantsFullscreen){document.exitFullscreen?.()?.catch(()=>{});return}wantsFullscreen=native;if(!native&&credits){closeCredits(false);return;}render(native,!native)});render(false)})();
 </script>
 <script>
 const canvas=document.querySelector('#art'),ctx=canvas.getContext('2d'),audio=document.querySelector('#audio'),file=document.querySelector('#audioFile'),play=document.querySelector('#play'),seek=document.querySelector('#seek'),state=document.querySelector('#state'),welcome=document.querySelector('#welcome');
@@ -90,14 +136,14 @@ function resetDub(clear=true){if(clear)sceneTransition=null;moshLast=null;moshKe
 const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function resize(){sceneTransition=null;swipeStart=null;const dpr=Math.min(devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);resetDub()}
 new ResizeObserver(resize).observe(canvas);
-function setupAudio(){if(analyser)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC){state.textContent='WEB AUDIO IS NOT AVAILABLE';return}const ac=new AC(),source=ac.createMediaElementSource(audio);analyser=ac.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.78;source.connect(analyser);analyser.connect(ac.destination);data=new Uint8Array(analyser.frequencyBinCount)}
+function setupAudio(){if(analyser)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC){state.textContent=window.SONORA_I18N.t('state.unavailable');return}const ac=new AC(),source=ac.createMediaElementSource(audio);analyser=ac.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.78;source.connect(analyser);analyser.connect(ac.destination);data=new Uint8Array(analyser.frequencyBinCount)}
 function visualSource(){const native=window.__sonoraNative;return native?`${native.mode}:${native.generation}:${native.timeline?.track||''}`:(audio.src||'idle');}
 function band(from,to){let sum=0;for(let i=from;i<to;i++)sum+=data[i];return sum/((to-from)*255)}
 function draw(now=0){requestAnimationFrame(draw);
 // Clock buckets retain fractional cadence (alternating 2/3 refreshes at 60 Hz), never replay missed frames.
 if(frameRate===24){if(frameOrigin===null)frameOrigin=now;const bucket=Math.floor((now-frameOrigin)*24/1000+1e-7);if(bucket===frameBucket)return;frameBucket=bucket;}
 const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;const dt=Math.min((now-lastFrame)/16.67||1,frameRate===24?4:2);lastFrame=now;if(scene!=='dub'&&scene!=='datamosh')ctx.clearRect(0,0,w,h);
-const native=window.__sonoraNative,nativeOn=native&&(native.mode==='microphone'||native.mode==='apple');if(native?.mode==='spotify'||(window.__sonoraShell&&!nativeOn)){sceneTransition=null;if(scene==='dub'||scene==='datamosh')resetDub();return;}
+const native=window.__sonoraNative,nativeOn=native&&(native.mode==='microphone'||native.mode==='apple');if(native?.mode==='spotify'||(window.__sonoraShell&&!nativeOn)){window.SONORA.updateCredits?.(now,0,0,0,matchMedia('(prefers-reduced-motion: reduce)').matches,0,native,audio);sceneTransition=null;if(scene==='dub'||scene==='datamosh')resetDub();return;}
 if(sceneTransition){const position=native?.mode==='apple'?native.timeline.position:audio.currentTime;if(sceneTransition.source!==visualSource()||position<sceneTransition.position-.1||position>sceneTransition.position+2)sceneTransition=null;else sceneTransition.position=position;}
 if(analyser)analyser.getByteFrequencyData(data);let bass=nativeOn?native.bands[0]:(data?band(1,14):0),mids=nativeOn?native.bands[1]:(data?band(14,92):0),highs=nativeOn?native.bands[2]:(data?band(92,240):0),rms=nativeOn?native.rms:0;
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -105,6 +151,7 @@ if(nativeOn&&native.mode==='apple'){
   // ponytail: deterministic time-based art, not detected beats; actual audio analysis is microphone-only.
   const p=still?0:native.timeline.position;phase=p*.25;bass=.16+Math.abs(Math.sin(p*.71))*.2;mids=.12+Math.abs(Math.sin(p*.37+1))*.24;highs=.08+Math.abs(Math.sin(p*1.13+2))*.18;level=bass;beat=0;
 }else{const drive=Math.max(bass,rms*.8);level+=(drive-level)*Math.min(1,.12*dt);beat=Math.max(0,beat-.022*dt);if(drive>level+.12)beat=Math.min(1,beat+.25);if(!still)phase+=dt*(.003+((nativeOn||!audio.paused)?drive*.013:0));}
+window.SONORA.updateCredits?.(now,bass,mids,highs,still,phase,native,audio);
 const immersive=document.body.classList.contains('visualizer-fullscreen'),cx=w*(immersive?.5:.59),cy=h*(immersive?.5:.49),R=Math.min(w*.48,h*.71),pulse=1+level*.22+beat*.07;
 if(scene==='bloom'){
   // Overlapping ink petals and fine veins: bass opens the form, mids crease it, treble roughens its edges.
@@ -353,29 +400,29 @@ function blendScene(now,w,h){
 }
 function stepScene(direction){const options=[...document.querySelector('#scene').options].map(option=>option.value),index=options.indexOf(scene);window.SONORA.setStyle(options[(index+direction+options.length)%options.length]);}
 canvas.addEventListener('pointerdown',event=>{
-  if(!document.body.classList.contains('visualizer-fullscreen')||!event.isPrimary||event.button!==0){swipeStart=null;return;}
+  if(document.body.classList.contains('credits-open')||!document.body.classList.contains('visualizer-fullscreen')||!event.isPrimary||event.button!==0){swipeStart=null;return;}
   swipeStart={id:event.pointerId,x:event.clientX,y:event.clientY,time:performance.now()};canvas.setPointerCapture?.(event.pointerId);
 });
 canvas.addEventListener('pointerup',event=>{
   const start=swipeStart;swipeStart=null;
-  if(!start||event.pointerId!==start.id||!document.body.classList.contains('visualizer-fullscreen'))return;
+  if(document.body.classList.contains('credits-open')||!start||event.pointerId!==start.id||!document.body.classList.contains('visualizer-fullscreen'))return;
   const dx=event.clientX-start.x,dy=event.clientY-start.y;
   if(performance.now()-start.time>1200||Math.abs(dx)<Math.max(50,canvas.clientWidth*.08)||Math.abs(dx)<Math.abs(dy)*1.5)return;
   stepScene(dx<0?1:-1);
 });
 canvas.addEventListener('pointercancel',()=>{swipeStart=null;});
-document.addEventListener?.('keydown',event=>{if(!document.body.classList.contains('visualizer-fullscreen')||event.ctrlKey||event.metaKey||event.altKey||event.repeat)return;if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();stepScene(event.key==='ArrowRight'?1:-1);}});
+document.addEventListener?.('keydown',event=>{if(document.body.classList.contains('credits-open')||!document.body.classList.contains('visualizer-fullscreen')||event.ctrlKey||event.metaKey||event.altKey||event.repeat)return;if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();stepScene(event.key==='ArrowRight'?1:-1);}});
 draw();
-function loadTrack(src,title,description){sceneTransition=null;resetDub();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=undefined;}audio.src=src;audio.load();loaded=true;document.querySelector('#trackName').textContent=title;document.querySelector('#trackSub').textContent=description;welcome.hidden=true;state.textContent='READY';for(const el of [play,seek,document.querySelector('#back'),document.querySelector('#forward')])el.disabled=false;}
-file.addEventListener('change',()=>{const f=file.files?.[0];if(!f)return;const url=URL.createObjectURL(f);loadTrack(url,f.name.replace(/\.[^.]+$/,''),'Ready to play · audio remains on this device');objectURL=url;});
-async function startPlayback(){try{setupAudio();if(!analyser)return;await analyser.context.resume();await audio.play();}catch(_){state.textContent='COULDN’T START PLAYBACK';document.querySelector('#trackSub').textContent='Press Play to retry, or choose another audio file.';}}
+function loadTrack(src,title,description){sceneTransition=null;resetDub();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=undefined;}audio.src=src;audio.load();loaded=true;document.querySelector('#trackName').textContent=title;document.querySelector('#trackSub').textContent=description;welcome.hidden=true;state.textContent=window.SONORA_I18N.t('state.ready');for(const el of [play,seek,document.querySelector('#back'),document.querySelector('#forward')])el.disabled=false;}
+file.addEventListener('change',()=>{const f=file.files?.[0];if(!f)return;const url=URL.createObjectURL(f);loadTrack(url,f.name.replace(/\.[^.]+$/,''),window.SONORA_I18N.t('track.ready'));objectURL=url;});
+async function startPlayback(){try{setupAudio();if(!analyser)return;await analyser.context.resume();await audio.play();}catch(_){state.textContent=window.SONORA_I18N.t('state.playbackError');document.querySelector('#trackSub').textContent=window.SONORA_I18N.t('error.playbackRetry');}}
 // The sample is fetched only after a click; it is not part of the offline shell cache.
-document.querySelector('#sampleTrack').addEventListener('click',()=>{loadTrack('/samples/september-14.mp3','So1loh — September 14','Sample track · streamed online');startPlayback();});
+document.querySelector('#sampleTrack').addEventListener('click',()=>{loadTrack('/samples/september-14.mp3','So1loh — September 14',window.SONORA_I18N.t('track.sample'));startPlayback();});
 play.addEventListener('click',()=>{if(audio.paused)startPlayback();else audio.pause()});
-audio.addEventListener('play',()=>{play.setAttribute('aria-label','Pause');setPlayIcon(false);state.textContent='NOW PLAYING'});audio.addEventListener('pause',()=>{play.setAttribute('aria-label','Play');setPlayIcon(true);if(loaded&&audio.currentTime<audio.duration)state.textContent='PAUSED'});audio.addEventListener('ended',()=>{play.setAttribute('aria-label','Play');setPlayIcon(true);state.textContent='TRACK ENDED'});
+audio.addEventListener('play',()=>{play.setAttribute('aria-label',window.SONORA_I18N.t('transport.pause'));setPlayIcon(false);state.textContent=window.SONORA_I18N.t('state.playing')});audio.addEventListener('pause',()=>{play.setAttribute('aria-label',window.SONORA_I18N.t('transport.play'));setPlayIcon(true);if(loaded&&audio.currentTime<audio.duration)state.textContent=window.SONORA_I18N.t('state.paused')});audio.addEventListener('ended',()=>{play.setAttribute('aria-label',window.SONORA_I18N.t('transport.play'));setPlayIcon(true);state.textContent=window.SONORA_I18N.t('state.ended')});
 audio.addEventListener('loadedmetadata',()=>{document.querySelector('#duration').textContent=fmt(audio.duration);seek.disabled=false});audio.addEventListener('timeupdate',()=>{document.querySelector('#current').textContent=fmt(audio.currentTime||0);if(!seek.matches(':active')&&audio.duration)seek.value=audio.currentTime/audio.duration*1000});seek.addEventListener('input',()=>{if(audio.duration)audio.currentTime=seek.value/1000*audio.duration});document.querySelector('#back').addEventListener('click',()=>{audio.currentTime=0});document.querySelector('#forward').addEventListener('click',()=>{audio.currentTime=Math.max(0,audio.duration-1)});document.querySelector('#scene').addEventListener('change',e=>window.SONORA.setStyle(e.target.value));
 audio.addEventListener('seeking',()=>{sceneTransition=null;if(scene==='dub'||scene==='datamosh')resetDub()});
-audio.addEventListener('error',()=>{state.textContent='COULDN’T READ THIS AUDIO FILE';document.querySelector('#trackSub').textContent='Try another common audio format.'});
+audio.addEventListener('error',()=>{state.textContent=window.SONORA_I18N.t('state.readError');document.querySelector('#trackSub').textContent=audio.error?.code===2?window.SONORA_I18N.t('error.audioNetwork'):window.SONORA_I18N.t('error.audioFormat')});
 </script>
 </body>
 </html>

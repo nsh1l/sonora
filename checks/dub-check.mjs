@@ -6,9 +6,10 @@ const gradient=(kind,args)=>{const stops=[];return {kind,args,stops,addColorStop
 const ctx=new Proxy({beginPath(){path=[];},moveTo(...xy){path.push(xy);},lineTo(...xy){path.push(xy);},createRadialGradient(...args){return gradient('radial',args);},createLinearGradient(...args){return gradient('linear',args);},fill(){if(material)material.push({op:'fill',path:path.slice(),ink:this.fillStyle,alpha:this.globalAlpha});if(dicePaint)dicePaint.push({path:path.slice(),ink:this.fillStyle});},fillRect(...args){if(grains)grains.push(args);},clearRect(){clears++;},drawImage(...args){images++;copies.push(args);},stroke(){if(material)material.push({op:'stroke',path:path.slice(),ink:this.strokeStyle,width:this.lineWidth,alpha:this.globalAlpha});strokes++;if(dicePaint)diceLines.push({path:path.slice(),ink:this.strokeStyle,width:this.lineWidth});}}, {get:(o,k)=>k in o?o[k]:()=>{}});
 const nodes=new Map();
 function node(){return {listeners:{},addEventListener(n,f){this.listeners[n]=f},getContext:()=>ctx,getBoundingClientRect:()=>({width:640,height:400}),clientWidth:640,clientHeight:400,width:640,height:400,paused:false,currentTime:0,files:[],classList:{contains:()=>false},setAttribute(){},matches:()=>false,load(){}};}
-const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:()=>fullscreen}}};
+const document={querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s)},createElement:node,body:{classList:{contains:name=>name==='visualizer-fullscreen'?fullscreen:false}}};
 const sandbox={document,SONORA:{},requestAnimationFrame:()=>{},ResizeObserver:class{constructor(f){resize=f}observe(){}},matchMedia:()=>({matches:reduced}),devicePixelRatio:1,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Uint8Array,Math,performance:{now:()=>clock}};sandbox.window=sandbox;
 vm.createContext(sandbox);
+vm.runInContext(await Bun.file(new URL('../i18n.js',import.meta.url)).text(),sandbox);
 const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 // Observe the real transient mesh without adding production debug state.
 const instrumented=code.replace('faces.sort((a,b)=>a.depth-b.depth);','faces.sort((a,b)=>a.depth-b.depth);globalThis.inspectDice(faces);');

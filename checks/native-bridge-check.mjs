@@ -2,6 +2,7 @@ const bridgeNodes = new Map(['art','state','trackName','trackSub'].map(id => [id
 const bridgeClasses = new Set();
 globalThis.window = globalThis;
 globalThis.document = { body:{classList:{toggle:(name,on)=>on?bridgeClasses.add(name):bridgeClasses.delete(name),contains:name=>bridgeClasses.has(name)}}, querySelector:selector=>bridgeNodes.get(selector.slice(1))||null };
+await import('../i18n.js');
 await import('../native-bridge.js');
 const send = value => SONORA.setPayload(JSON.stringify(value));
 const valid = (mode,generation,extra={}) => ({mode,bands:[.2,.3,.4],rms:.2,timeline:{playing:false,position:5,duration:120,track:'track-a'},generation,...extra});
@@ -26,12 +27,26 @@ if(!bridgeClasses.has('sonora-native')||bridgeNodes.get('art').hidden) throw Err
 SONORA.clear(); if(bridgeClasses.has('sonora-native')||bridgeClasses.has('sonora-spotify')) throw Error('bridge clear did not restore browser mode');
 SONORA.setShell(); if(!bridgeClasses.has('sonora-shell')) throw Error('native-shell CSS hook missing');
 
+
+// Owned bridge states are English catalog copy; external metadata/status remains literal data.
+SONORA.clear();
+if(bridgeNodes.get('state').textContent!==SONORA_I18N.t('state.awaiting')) throw Error('awaiting fallback missing');
+SONORA.setPayload(valid('microphone',1));
+if(bridgeNodes.get('state').textContent!==SONORA_I18N.t('native.microphone')||bridgeNodes.get('trackName').textContent!==SONORA_I18N.t('native.listening')||bridgeNodes.get('trackSub').textContent!==SONORA_I18N.t('native.privacy')) throw Error('microphone English defaults missing');
+SONORA.setPayload(valid('apple',2,{artist:'<img> {artist}'}));
+if(bridgeNodes.get('state').textContent!==SONORA_I18N.t('native.apple')||bridgeNodes.get('trackSub').textContent!=='<img> {artist} · Procedural art, not audio analysis.') throw Error('Apple interpolation changed raw metadata');
+SONORA.setPayload({mode:'spotify',generation:3});
+if(bridgeNodes.get('state').textContent!==SONORA_I18N.t('native.spotify')) throw Error('Spotify English state missing');
+SONORA.setPayload(null);
+if(bridgeNodes.get('state').textContent!==SONORA_I18N.t('native.invalid')) throw Error('invalid input English error missing');
+SONORA.clear();
+
 // Execute the real inline drawing code and local-file selection flow against a small DOM.
 class Element {
   constructor(){this.listeners={};this.textContent='';this.disabled=false;this.hidden=false;this.value='0';this.files=[];this.classList={contains:()=>false};}
   addEventListener(name,fn){(this.listeners[name]??=[]).push(fn);}
   fire(name){for(const fn of this.listeners[name]??[])fn({target:this});}
-  replaceChildren(){} setAttribute(){} matches(){return false;}
+  append(){} replaceChildren(){} setAttribute(name,value){(this.attributes??={})[name]=value;} matches(){return false;}
 }
 const elements=new Map(['art','audio','audioFile','play','seek','state','welcome','trackName','trackSub','back','forward','duration','current','scene','sampleTrack','frameRate'].map(id=>[id,new Element()]));
 const traces=[],paints=[]; const canvas=elements.get('art');
@@ -47,11 +62,13 @@ const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];if(!scripts.le
 eval(scripts.at(-1)[1]+'\nglobalThis.__sonoraTestDraw=draw;');
 const picker=elements.get('audioFile');picker.files=[{name:'kept-local.mp3',type:'audio/mpeg'}];picker.fire('change');
 if(elements.get('trackName').textContent!=='kept-local'||elements.get('play').disabled)throw Error('existing browser-local audio flow regressed');
-// Extension selection also works when a file manager omits or varies the FLAC MIME type.
-if(!html.includes('accept="audio/*,.flac,audio/flac,audio/x-flac"'))throw Error('FLAC picker extension/MIME coverage missing');
-for(const [name,type] of [['lossless.flac','audio/flac'],['legacy.flac','audio/x-flac'],['unknown.FLAC',''],['generic.flac','application/octet-stream']]){
+// File managers may report aliases, a container MIME, no type or a generic type; none are rejected.
+const accept=html.match(/id="audioFile"[^>]*accept="([^"]+)"/)[1].split(',');
+for(const ext of ['.mp3','.aac','.m4a','.mp4','.wav','.wave','.flac','.ogg','.oga','.opus','.webm','.weba'])if(!accept.includes(ext))throw Error('missing audio extension '+ext);
+for(const type of ['audio/*','audio/mpeg','audio/aac','audio/mp4','audio/x-m4a','audio/wav','audio/x-wav','audio/flac','audio/x-flac','audio/ogg','audio/opus','audio/webm','video/mp4','video/webm'])if(!accept.includes(type))throw Error('missing audio MIME '+type);
+for(const [name,type] of [['song.mp3','audio/mpeg'],['song.aac','audio/aac'],['song.m4a','audio/x-m4a'],['song.m4a','audio/mp4'],['song.mp4','video/mp4'],['song.wav','audio/wav'],['song.wave','audio/x-wav'],['song.ogg','audio/ogg'],['song.opus','audio/ogg'],['song.weba','audio/webm'],['song.webm','video/webm'],['lossless.flac','audio/flac'],['legacy.flac','audio/x-flac'],['unknown.FLAC',''],['generic.flac','application/octet-stream'],['unknown.M4A',''],['generic.aac','application/octet-stream']]){
   picker.files=[{name,type}];picker.fire('change');
-  if(audio.src!=='blob:track'||elements.get('trackName').textContent!==name.replace(/\.[^.]+$/,'')||elements.get('play').disabled)throw Error('FLAC must share local audio path: '+type);
+  if(audio.src!=='blob:track'||elements.get('trackName').textContent!==name.replace(/\.[^.]+$/,'')||elements.get('play').disabled)throw Error('all audio formats must share local audio path: '+type);
 }
 
 SONORA.setShell();SONORA.setPayload(valid('apple',1,{timeline:{playing:false,position:5,duration:120,track:'a'}}));
@@ -79,9 +96,14 @@ traces.length=0;SONORA.setPayload({mode:'spotify',generation:4});__sonoraTestDra
 if(traces.length)throw Error('Spotify mode rendered a visualization');
 // A sample click shares transport/analyser with local files and reports playback rejection.
 elements.get('sampleTrack').fire('click');await new Promise(r=>setTimeout(r,0));
-if(audio.src!=='/samples/september-14.mp3'||audio.paused||resumes!==1||elements.get('trackName').textContent!=='So1loh — September 14')throw Error('sample click did not start shared playback');
+if(audio.src!=='/samples/september-14.mp3'||audio.paused||resumes!==1||elements.get('trackName').textContent!=='So1loh — September 14'||elements.get('play').attributes['aria-label']!=='Pause'||elements.get('state').textContent!=='NOW PLAYING')throw Error('sample click did not start shared playback');
 let revoked=0;URL.revokeObjectURL=()=>revoked++;picker.fire('change');elements.get('sampleTrack').fire('click');await new Promise(r=>setTimeout(r,0));
 if(revoked!==1)throw Error('local blob URL was not released on source switches');
 audio.play=async()=>{throw Error('blocked')};elements.get('sampleTrack').fire('click');await new Promise(r=>setTimeout(r,0));
 if(elements.get('state').textContent!=='COULDN’T START PLAYBACK')throw Error('playback rejection was hidden');
-console.log('PASS: FLAC extension/MIME variants share local transport; sample one-click playback, shared analyser, source switching, playback errors; native bridge validation, source isolation, permission errors, Apple timeline drawing, reduced motion, and browser local-file flow');
+audio.fire('error');
+if(elements.get('state').textContent!==SONORA_I18N.t('state.readError')||elements.get('trackSub').textContent!==SONORA_I18N.t('error.audioFormat'))throw Error('audio read error copy missing');
+for(const code of [2,3,4]){audio.error={code};audio.fire('error');if(elements.get('trackSub').textContent!==SONORA_I18N.t(code===2?'error.audioNetwork':'error.audioFormat'))throw Error('audio failure guidance missing for code '+code);}audio.error=null;
+audio.fire('pause');if(elements.get('play').attributes['aria-label']!=='Play'||elements.get('state').textContent!=='PAUSED')throw Error('paused English state/ARIA missing');
+audio.fire('ended');if(elements.get('state').textContent!=='TRACK ENDED')throw Error('ended English state missing');
+console.log('PASS: major audio extension/MIME variants share local transport; network/decode/unsupported codec guidance; sample one-click playback, shared analyser, source switching, playback errors; native bridge validation, source isolation, permission errors, Apple timeline drawing, reduced motion, and browser local-file flow');

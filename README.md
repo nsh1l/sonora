@@ -36,13 +36,23 @@ Velvet extends the midnight/mint/coral world with local warm amber and rose, tun
 
 Velvet uses the existing phase/bands directly, so reduced motion freezes phase/drift but keeps gentle live band response; Apple Music is deterministic playback-position art that holds when paused. Resize, seek and source switches recompute without stale material state. It shares the existing fullscreen cycle and five-second whole-frame crossfade. Browser ID is `velvet`, also available in the native menu/allowlist. No cloth physics, isolated-vocal analysis, randomness, feedback buffer or frame histories are added.
 
+## Credits
+
+The subtle **Credits** button lives on the stage in both the browser and shared native HTML (not in the browser-only tools). It enters the existing document-root fullscreen visualizer, using CSS fullscreen when native fullscreen is unavailable or denied, and places centered credits in front of the live canvas with a restrained ink veil. Audio keeps playing; there is no additional player, AudioContext, timer or animation loop.
+
+Only the text is filtered: SVG `feTurbulence` and `feDisplacementMap` bend glyph contours, not the dialog or Close button. A fixed noise seed and smoothly evolving spatial frequency avoid frame-random jitter. Existing bass/mid/high bands feed a 180 ms envelope, with displacement capped at 6 px and a padded filter region. Updates run inside the existing admitted draw path, so **24fps** also gates text deformation. Silence and browser pause settle to zero displacement; Reduced Motion removes deformation and noise drift completely. Native microphone uses real analyzed bands. Apple Music instead derives deterministic deformation from the existing playback-position art; a paused timeline holds it. This is not Apple audio FFT or beat detection. Source changes clear the envelope; no-source/Spotify metadata modes settle to static credits.
+
+The labeled modal makes background controls inert, initially focuses **Close credits**, traps Tab/Shift+Tab on that sole control, and closes with Escape. Closing returns to the prior fullscreen mode and restores Credits-trigger focus; exiting native fullscreen also clears the dialog and deformation. Fullscreen exits, swipes and scene-arrow shortcuts cannot act behind the open dialog. The native bundle continues to use this same HTML; physical WKWebView/iPhone rendering and native fullscreen behavior remain unverified on Linux.
+
 ## 24fps
 
 The **24fps** button is off by default: off uses the existing automatic `requestAnimationFrame` cadence. On limits visualization updates to approximately 24 per second using the rAF clock, independent of the display refresh rate. It does not detect a 24 Hz display, change audio playback, freeze animations, or enable Reduced Motion. Motion retains its elapsed-time speed; long stalls are bounded and missed frames are not replayed. Fullscreen crossfades still last five wall-clock seconds. Reduced Motion remains independent in either mode. The native iPhone source UI has a matching **24fps** toggle; its Swift/Xcode/device behavior remains unverified here. This session-only setting is not saved.
 
-## Local FLAC files
+## Local audio formats
 
-Choose audio accepts `.flac` explicitly, including file managers reporting `audio/flac`, `audio/x-flac` or no MIME type. FLAC uses the same local audio element, Web Audio analyser, transport and visualization path as other local files; no upload, server conversion or extra decoder is added. Playback still depends on the browser/OS decoder and file encoding. A file the browser cannot decode uses the existing playback/read error state; try a supported browser or a WAV/MP3 copy. Physical iPhone playback remains unverified.
+Choose audio explicitly includes MP3 (`.mp3`), raw AAC (`.aac`), AAC in MP4/M4A (`.m4a`, `.mp4`), PCM WAV (`.wav`, `.wave`), FLAC, Ogg Vorbis (`.ogg`, `.oga`), Ogg Opus (`.opus`) and WebM Opus (`.webm`, `.weba`). MIME aliases, blank MIME values and generic file-manager types share the same local audio-element, Web Audio analyser, seek and transport path; the picker filter is advisory, not a strict MIME validator. Files stay on-device and outside the PWA shell cache.
+
+Actual synthetic files played in the verification Chromium: MP3, raw ADTS AAC, AAC-in-M4A, PCM16/PCM24 WAV, FLAC, Ogg Vorbis, Ogg Opus and WebM Opus. No extra library is necessary for those tested formats. Browser/OS decoders still determine availability: this is not a universal browser guarantee. M4A is a container, not a codec; ALAC-in-M4A failed in that Chromium and is **not** claimed supported. DRM-protected audio is not supported. Decode/unsupported-file errors suggest a PCM WAV or MP3 copy; network errors have separate guidance. Physical iPhone/Safari/Firefox playback remains unverified.
 
 ## Sample track
 
@@ -59,7 +69,7 @@ When changing a precached asset, bump the `CACHE` version in `sw.js` so existing
 ### Publish to the existing Cloudflare Pages project
 
 ```sh
-bun checks/native-bridge-check.mjs && bun checks/pwa-check.mjs && bun checks/fullscreen-check.mjs && bun checks/dub-check.mjs && bun build.mjs
+bun checks/i18n-check.mjs && bun checks/native-bridge-check.mjs && bun checks/pwa-check.mjs && bun checks/fullscreen-check.mjs && bun checks/dub-check.mjs && bun checks/credits-check.mjs && bun build.mjs
 bunx wrangler pages deploy dist --project-name sonora-viz --branch main
 ```
 
@@ -67,7 +77,7 @@ bunx wrangler pages deploy dist --project-name sonora-viz --branch main
 
 ## iPhone source app
 
-`ios/SONORA.xcodeproj` is an iPhone target (iOS 17.4+) that bundles the repository-root `index.html` and `native-bridge.js` directly; there is one renderer, not a copied fork. Open it in Xcode, select a signing team and a unique bundle ID, then build:
+`ios/SONORA.xcodeproj` is an iPhone target (iOS 17.4+) that bundles the repository-root `index.html`, `i18n.js` and `native-bridge.js` directly; there is one renderer, not a copied fork. Open it in Xcode, select a signing team and a unique bundle ID, then build:
 
 ```sh
 xcodebuild -project ios/SONORA.xcodeproj -scheme SONORA -destination 'generic/platform=iOS' build
@@ -82,10 +92,22 @@ The source was prepared on Linux; Swift/Xcode compilation and iPhone hardware be
 Run the executable checks with Bun:
 
 ```sh
+bun checks/i18n-check.mjs
 bun checks/native-bridge-check.mjs
 bun checks/pwa-check.mjs
 bun checks/fullscreen-check.mjs
 bun checks/dub-check.mjs
+bun checks/credits-check.mjs
 ```
 
 The native check executes the bundled renderer in a small DOM and verifies the native data boundary, source separation, Apple playback-time animation/pause/reduced-motion, and the original local-file flow. The PWA check executes the worker lifecycle and fetch handler with small mocks, verifies the manifest PNGs and precached assets, and exercises install/error UI states.
+
+## English-first i18n
+
+The shared web/native renderer uses one English dictionary in `i18n.js`, loaded as a classic script before the bridge and renderer (including native `file://`). `window.SONORA_I18N.t(key, params)` returns plain text; unknown keys remain literal and missing `{name}` parameters remain visible. Static `data-i18n` text and `data-i18n-aria-label` attributes retain usable English HTML before JavaScript. Split heading/hint spans preserve their existing line breaks; translations never use `innerHTML`. The HTML and manifest declare `en`.
+
+Keys cover owned UI copy, accessibility labels, credits headings/actions, playback errors/states, native bridge defaults and PWA install/offline/update states. The credits title retains SONORA’s exact brand spelling; the credited person/team names remain literal data. Brand identifiers, pattern proper names/IDs, 24fps, sample attribution, user filenames, artist metadata, times and external native status strings are data, not translation keys. External status/metadata still use `textContent`. Standalone Swift UI localization is not added; its existing English literals remain unchanged.
+
+There is no Japanese locale, language picker, locale storage, URL routing, browser-language guessing, runtime fetch or dependency. A future locale should supply the same plain-text keys/placeholders and an explicit locale selection contract; update static fallbacks and manifest language together. Current key types are plain text or parameterized plain text, plus the explicit ARIA-label binding—no HTML, pluralization or locale-aware date/number formatting.
+
+`bun checks/i18n-check.mjs` checks key coverage, static English fallbacks, safe DOM application/interpolation, shared packaging and language declarations. Run all retained checks and `bun build.mjs` using the commands above; browser/device verification remains separate.

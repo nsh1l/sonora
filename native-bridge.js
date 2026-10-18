@@ -1,6 +1,7 @@
 /* Native input boundary; the browser's local-file player does not use it. */
 (function (global) {
   'use strict';
+  const t = global.SONORA_I18N.t;
   const finite = v => typeof v === 'number' && Number.isFinite(v) && v >= 0;
   const clean = (v, max) => typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').slice(0, max) : '';
   const empty = (status = '', generation = 0) => ({mode:'none', bands:[0,0,0], rms:0, timeline:{playing:false, position:0, duration:0, track:''}, title:'', artist:'', generation, status});
@@ -18,7 +19,7 @@
   function render(payload) {
     const next = valid(payload);
     if (next === 'stale') return;
-    latest = next || empty('Native input was invalid.', newestGeneration);
+    latest = next || empty(t('native.invalid'), newestGeneration);
     if (next) newestGeneration = Math.max(newestGeneration, next.generation);
     const on = ['microphone','apple'].includes(latest.mode), spotify = latest.mode === 'spotify';
     document.body.classList.toggle('sonora-native', on);
@@ -26,9 +27,9 @@
     const art = document.querySelector('#art');
     if (art) art.hidden = spotify;
     const state = document.querySelector('#state'), name = document.querySelector('#trackName'), sub = document.querySelector('#trackSub');
-    if (state) state.textContent = on ? (latest.status || (latest.mode === 'apple' ? 'APPLE MUSIC · PLAYBACK-POSITION ART' : 'MICROPHONE · LIVE AUDIO')) : (spotify ? 'SPOTIFY METADATA ONLY' : (latest.status || 'AWAITING A TRACK'));
-    if (name) name.textContent = on ? (latest.title || 'Listening to microphone') : '';
-    if (sub) sub.textContent = on ? (latest.mode === 'apple' ? `${latest.artist ? latest.artist + ' · ' : ''}Procedural art, not audio analysis.` : 'Live microphone analysis stays on this device.') : '';
+    if (state) state.textContent = on ? (latest.status || (latest.mode === 'apple' ? t('native.apple') : t('native.microphone'))) : (spotify ? t('native.spotify') : (latest.status || t('state.awaiting')));
+    if (name) name.textContent = on ? (latest.title || t('native.listening')) : '';
+    if (sub) sub.textContent = on ? (latest.mode === 'apple' ? t('native.procedural', {artist: latest.artist ? latest.artist + ' · ' : ''}) : t('native.privacy')) : '';
     global.__sonoraNative = latest;
   }
   global.SONORA = {

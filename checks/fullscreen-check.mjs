@@ -1,3 +1,5 @@
+globalThis.window = globalThis;
+await import('../i18n.js');
 const html = await Bun.file(new URL('../index.html', import.meta.url)).text();
 const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1]).find(source => source.includes('fullscreenToggle'));
 if (!script) throw Error('fullscreen controller is missing from index.html');
@@ -11,7 +13,7 @@ for (const assertion of [
   '@media(prefers-reduced-motion:reduce){body.visualizer-fullscreen .fullscreen-hint{animation:hint-fade 5s linear forwards}}',
   'pointer-events:none;user-select:none',
   'bottom:calc(18px + env(safe-area-inset-bottom))',
-  '<p class="fullscreen-hint" id="fullscreenHint">左右にスワイプしてパターンを切り替え</p>',
+  '<p class="fullscreen-hint" id="fullscreenHint" data-i18n="fullscreen.hint">Swipe left or right to change patterns</p>',
   '.top,.bottom,.pwa-install{position:relative;z-index:11}',
   'body.visualizer-fullscreen .top{opacity:0;transform:translateY(-38px)',
   '@media(prefers-reduced-motion:reduce){.top,.visual-label,.stage-copy,.bottom,.pwa-install,.fullscreen-toggle,.fullscreen-exit{transition:none!important}'
@@ -30,7 +32,7 @@ class Element {
   getAttribute(name) { return this.attributes.get(name) ?? null; }
   removeAttribute(name) { this.attributes.delete(name); }
   toggleAttribute(name, value) { value ? this.attributes.set(name, '') : this.attributes.delete(name); }
-  focus() { this.focused = true; }
+  focus() { this.focused = true; this.onFocus?.(); }
 }
 const mount = mode => {
   const stage = new Element(), toggle = new Element(), exit = new Element(), top = new Element(), state = new Element(), welcome = new Element(), bottom = new Element(), install = new Element();
@@ -40,8 +42,11 @@ const mount = mode => {
   if (mode === 'native') stage.requestFullscreen = () => { document.fullscreenElement = stage; events.get('fullscreenchange')(); return Promise.resolve(); };
   if (mode === 'rejected') stage.requestFullscreen = () => Promise.reject(Error('rejected'));
   if (mode === 'race') { let reject; stage.requestFullscreen = () => new Promise((_, fail) => { reject = fail; }); stage.reject = () => reject(Error('late rejection')); }
+  for (const key of ['#creditsTrigger','#creditsDialog','#creditsClose','#creditsDisplacement','#creditsNoise','main']) nodes.set(key,new Element());
+  for (const node of nodes.values()) node.onFocus=()=>{document.activeElement=node;};
+  window.SONORA={};
   new Function('document', script)(document);
-  return {stage, toggle, exit, top, state, welcome, bottom, install, body, events, document};
+  return {stage, toggle, exit, top, state, welcome, bottom, install, body, events, document, nodes};
 };
 const assertInactive = ui => {
   if (ui.body.classList.contains('visualizer-fullscreen') || ui.toggle.getAttribute('aria-pressed') !== 'false' || ui.toggle.getAttribute('aria-label') !== 'Enter visualizer fullscreen' || !ui.exit.inert || ui.top.inert) throw Error('fullscreen exit did not restore UI state');
@@ -84,4 +89,5 @@ race.stage.reject();
 await Promise.resolve();
 assertInactive(race);
 
+export {mount, assertInactive, assertActive};
 console.log('PASS: fullscreen native/fallback entry and exit, Escape, fullscreenchange, inert ARIA state, focus restoration, race handling, and CSS motion rules');

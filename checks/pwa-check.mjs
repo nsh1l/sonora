@@ -34,7 +34,7 @@ const cacheSource = await Bun.file(new URL('../sw.js', import.meta.url)).text();
 const cacheName = cacheSource.match(/const CACHE = '([^']+)'/)?.[1];
 if (!cacheName) throw Error('service-worker cache revision is missing');
 const shell = cacheData.get(cacheName);
-if (!shell || !shell.has('/index.html') || !shell.has('/pwa.mjs')) throw Error('install did not precache the shell');
+if (!shell || !shell.has('/index.html') || !shell.has('/pwa.mjs') || !shell.has('/i18n.js')) throw Error('install did not precache the shell');
 cacheData.set('sonora-pwa-old', new Map());
 cacheData.set('other-app', new Map());
 await dispatch('activate');
@@ -72,25 +72,26 @@ class Element {
   addEventListener(name, listener) { const list = this.listeners.get(name) ?? []; list.push(listener); this.listeners.set(name, list); }
   async emit(name, value = {}) { await Promise.all((this.listeners.get(name) ?? []).map(listener => listener(value))); }
 }
-const installPwa = async ({reject = false} = {}) => {
+const installPwa = async ({reject = false, standalone = false, waiting = null} = {}) => {
   const button = new Element(), hint = new Element(), windowEvents = new Map();
   const serviceWorkerEvents = new Map();
-  const registration = {waiting: null, addEventListener() {}};
+  const registration = {waiting, addEventListener() {}};
   globalThis.document = {querySelector: selector => selector === '#installApp' ? button : hint};
   globalThis.window = globalThis;
   globalThis.addEventListener = (name, listener) => windowEvents.set(name, listener);
   globalThis.matchMedia = () => ({matches: false});
   Object.defineProperty(globalThis, 'location', {configurable: true, value: {protocol: 'https:'}});
-  Object.defineProperty(globalThis, 'navigator', {configurable: true, value: {standalone: false, serviceWorker: {
+  Object.defineProperty(globalThis, 'navigator', {configurable: true, value: {standalone, serviceWorker: {
     controller: null, ready: Promise.resolve(registration),
     register: () => reject ? Promise.reject(Error('offline')) : Promise.resolve(registration),
     addEventListener: (name, listener) => serviceWorkerEvents.set(name, listener)
   }}});
+  await import('../i18n.js');
   const source = await Bun.file(new URL('../pwa.mjs', import.meta.url)).text();
   new Function(source)();
   await Promise.resolve();
   await Promise.resolve();
-  return {button, hint, windowEvents, serviceWorkerEvents};
+  return {button, hint, windowEvents, serviceWorkerEvents, registration};
 };
 const ui = await installPwa();
 if (ui.hint.textContent !== 'Offline shell saved. Reload once to use it offline.') throw Error(`first-install offline state is misleading: ${ui.hint.textContent}`);
@@ -104,4 +105,16 @@ if (!ui.hint.hidden) throw Error('installed UI was not hidden');
 const failure = await installPwa({reject: true});
 if (failure.hint.textContent !== 'Offline setup failed. Reconnect and reload to try again.') throw Error('service-worker error UI failed');
 
+const controlled = await installPwa();
+navigator.serviceWorker.controller = {};
+controlled.serviceWorkerEvents.get('controllerchange')();
+if(controlled.hint.textContent!=='Offline shell ready · iPhone: Share → Add to Home Screen') throw Error('controlled offline state missing');
+const updated = await installPwa({waiting:{}});
+if(updated.hint.textContent!=='Update ready · close all SONORA windows and reopen to apply.') throw Error('waiting update copy missing');
+const installFailure = await installPwa();
+installFailure.windowEvents.get('beforeinstallprompt')({preventDefault(){},prompt:async()=>{throw Error('blocked')},userChoice:Promise.resolve({outcome:'dismissed'})});
+await installFailure.button.emit('click');
+if(installFailure.hint.textContent!=='Installation could not start. Use your browser’s install menu.'||!installFailure.button.hidden) throw Error('install rejection copy missing');
+const installed = await installPwa({standalone:true});
+if(!installed.button.hidden||!installed.hint.hidden) throw Error('standalone install UI leaked');
 console.log('PASS: PWA precache, scoped cleanup, offline shell, cache exclusions, manifest assets, and install UI');

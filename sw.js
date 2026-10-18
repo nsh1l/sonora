@@ -1,5 +1,5 @@
-const CACHE = 'sonora-pwa-v21';
-const SHELL = ['/', '/index.html', '/native-bridge.js', '/pwa.mjs', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'];
+const CACHE = 'sonora-pwa-v23';
+const SHELL = ['/', '/index.html', '/i18n.js', '/native-bridge.js', '/pwa.mjs', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
 });
