@@ -46,6 +46,6 @@ for(const page of ['privacy.html','support.html']) {
 }
 assert.match(support, /https:\/\/github\.com\/nsh1l\/sonora\/issues/);
 assert.match(policy, /https:\/\/github\.com\/nsh1l\/sonora\/issues/);
-assert.match(worker, /const CACHE = 'sonora-pwa-v24'/);
+assert.match(worker, /const CACHE = 'sonora-pwa-v25'/);
 for(const value of ['workflow_dispatch:','branches: [feat/ios-release-prep]','runs-on: macos-latest','contents: read','timeout-minutes: 45','actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683','actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02','CODE_SIGNING_ALLOWED=NO','sdk_major < 26','sonora-ios-unsigned-xcarchive-not-installable'])assert(workflow.includes(value),value);
 console.log('PASS: native local source and cleanup order, unsigned workflow, icon, bundle metadata, privacy manifest, and public route packaging');

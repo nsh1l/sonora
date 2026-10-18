@@ -8,7 +8,7 @@ const key=(ui,key,shiftKey=false)=>{let prevented=false;ui.events.get('keydown')
 for(const mode of ['native','unsupported','rejected','race']){
   const ui=mount(mode),get=s=>ui.nodes.get(s),trigger=get('#creditsTrigger'),dialog=get('#creditsDialog'),close=get('#creditsClose');
   trigger.emit('click');await Promise.resolve();
-  assert.equal(dialog.hidden,false);assert(ui.body.classList.contains('visualizer-fullscreen'));assert(get('main').inert&&ui.install.inert&&ui.exit.inert);assert.equal(ui.document.activeElement,close);
+  assert.equal(dialog.hidden,false);assert(ui.body.classList.contains('visualizer-fullscreen'));assert(get('main').inert&&ui.install.inert&&get('.public-links').inert&&get('.public-links').getAttribute('aria-hidden')==='true'&&ui.exit.inert);assert.equal(ui.document.activeElement,close);
   for(const shift of [false,true]){trigger.focus();assert(key(ui,'Tab',shift));assert.equal(ui.document.activeElement,close);}
   ui.exit.emit('click');assert.equal(dialog.hidden,false,'fullscreen exit control is suppressed behind dialog');
   assert(key(ui,'Escape'));assertInactive(ui);assert(dialog.hidden&&!get('main').inert);assert.equal(ui.document.activeElement,trigger);assert.equal(get('#creditsDisplacement').getAttribute('scale'),'0');

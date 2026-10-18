@@ -8,6 +8,8 @@
     "credits.concept": "Concept & creative direction",
     "credits.development": "Development assistance",
     "credits.close": "Close credits",
+    "links.privacy": "Privacy",
+    "links.support": "Support",
     "stage.label": "Audio visualization",
     "state.awaiting": "AWAITING A TRACK",
     "welcome.sound": "Sound,",

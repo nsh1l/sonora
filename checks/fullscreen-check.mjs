@@ -35,8 +35,8 @@ class Element {
   focus() { this.focused = true; this.onFocus?.(); }
 }
 const mount = mode => {
-  const stage = new Element(), toggle = new Element(), exit = new Element(), top = new Element(), state = new Element(), welcome = new Element(), bottom = new Element(), install = new Element();
-  const nodes = new Map([['.stage', stage], ['#fullscreenToggle', toggle], ['#fullscreenExit', exit], ['.top', top], ['#state', state], ['#welcome', welcome], ['.bottom', bottom], ['.pwa-install', install]]);
+  const stage = new Element(), toggle = new Element(), exit = new Element(), top = new Element(), state = new Element(), welcome = new Element(), bottom = new Element(), install = new Element(), publicLinks = new Element();
+  const nodes = new Map([['.stage', stage], ['#fullscreenToggle', toggle], ['#fullscreenExit', exit], ['.top', top], ['#state', state], ['#welcome', welcome], ['.bottom', bottom], ['.pwa-install', install], ['.public-links', publicLinks]]);
   const events = new Map(), body = new Element();
   const document = {body, documentElement: stage, fullscreenElement: null, querySelector: selector => nodes.get(selector) ?? null, addEventListener: (name, listener) => events.set(name, listener), exitFullscreen() { document.fullscreenElement = null; events.get('fullscreenchange')(); }};
   if (mode === 'native') stage.requestFullscreen = () => { document.fullscreenElement = stage; events.get('fullscreenchange')(); return Promise.resolve(); };
@@ -46,13 +46,13 @@ const mount = mode => {
   for (const node of nodes.values()) node.onFocus=()=>{document.activeElement=node;};
   window.SONORA={};
   new Function('document', script)(document);
-  return {stage, toggle, exit, top, state, welcome, bottom, install, body, events, document, nodes};
+  return {stage, toggle, exit, top, state, welcome, bottom, install, publicLinks, body, events, document, nodes};
 };
 const assertInactive = ui => {
-  if (ui.body.classList.contains('visualizer-fullscreen') || ui.toggle.getAttribute('aria-pressed') !== 'false' || ui.toggle.getAttribute('aria-label') !== 'Enter visualizer fullscreen' || !ui.exit.inert || ui.top.inert) throw Error('fullscreen exit did not restore UI state');
+  if (ui.body.classList.contains('visualizer-fullscreen') || ui.toggle.getAttribute('aria-pressed') !== 'false' || ui.toggle.getAttribute('aria-label') !== 'Enter visualizer fullscreen' || !ui.exit.inert || ui.top.inert || ui.publicLinks.inert || ui.publicLinks.getAttribute('aria-hidden') !== null) throw Error('fullscreen exit did not restore UI state');
 };
 const assertActive = ui => {
-  if (!ui.body.classList.contains('visualizer-fullscreen') || ui.toggle.getAttribute('aria-pressed') !== 'true' || ui.toggle.getAttribute('aria-label') !== 'Exit visualizer fullscreen' || !ui.top.inert || ui.top.getAttribute('aria-hidden') !== 'true' || ui.exit.inert) throw Error('fullscreen entry did not make faded UI inert and expose exit');
+  if (!ui.body.classList.contains('visualizer-fullscreen') || ui.toggle.getAttribute('aria-pressed') !== 'true' || ui.toggle.getAttribute('aria-label') !== 'Exit visualizer fullscreen' || !ui.top.inert || ui.top.getAttribute('aria-hidden') !== 'true' || ui.exit.inert || !ui.publicLinks.inert || ui.publicLinks.getAttribute('aria-hidden') !== 'true') throw Error('fullscreen entry must expose exit and make surrounding links inert');
 };
 
 const native = mount('native');
