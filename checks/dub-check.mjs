@@ -178,7 +178,7 @@ const swift=await Bun.file(new URL('../ios/SONORA/SONORAApp.swift',import.meta.u
 const styles=nodes.get('#scene').options.map(o=>o.value),host=await Bun.file(new URL('../ios/SONORA/RendererHost.swift',import.meta.url)).text();
 assert.deepEqual(JSON.parse('['+host.match(/guard \[([^\]]+)\]\.contains\(value\)/)[1]+']'),styles,'native guard and web cycle must agree');
 assert.deepEqual([...swift.match(/Picker\("Visual style"[^\n]+/)[0].matchAll(/\.tag\("([^"]+)"\)/g)].map(m=>m[1]),styles,'native menu and web cycle must agree');
-assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.segmented\)/.test(swift));
+assert(/Picker\("Visual style"[^\n]+pickerStyle\(\.menu\)/.test(swift));assert(/Picker\("Source"[^\n]+pickerStyle\(\.menu\)/.test(swift));
 // Actual Velvet Canvas2D paint: bounded translucent feathered planes.
 fullscreen=false;reduced=false;
 const materialCapture=(style,drawFrame)=>{

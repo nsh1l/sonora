@@ -24,7 +24,7 @@ An independent generative visual instrument, not a conventional equalizer or a r
 
 ## Capabilities and Constraints
 
-- The browser keeps the user-selected local-file workflow; audio is processed on-device and not uploaded.
+- Browser and iPhone Local File mode use the shared user-selected file workflow; audio is processed on-device and not uploaded.
 - iPhone microphone input is analyzed locally into frequency bands. SONORA does not monitor microphone audio through speakers.
 - Apple Music contributes the system player's current item and playback position only. The resulting drawing is procedural time-based art, not stream capture, audio-spectrum analysis, BPM, or beat detection.
 - Spotify is an optional isolated metadata view with attribution and an outbound Spotify link; it does not control playback, analyze audio, or synchronize visuals. A Spotify developer app, redirect domain/associated-domain setup, and account eligibility are user-configured prerequisites.

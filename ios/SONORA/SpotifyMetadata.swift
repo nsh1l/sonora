@@ -15,6 +15,10 @@ import CryptoKit
   private var retryAfter = Date.distantPast
   private var clientID: String { Bundle.main.object(forInfoDictionaryKey: "SpotifyClientID") as? String ?? "" }
   private var redirect: URL? { URL(string: Bundle.main.object(forInfoDictionaryKey: "SpotifyRedirectURL") as? String ?? "") }
+  var isConfigured: Bool {
+    guard !clientID.isEmpty, let redirect, redirect.scheme == "https", let host = redirect.host else { return false }
+    return host != "example.invalid" && !host.contains("$(") && !redirect.path.isEmpty
+  }
 
   func connect() {
     disconnect()

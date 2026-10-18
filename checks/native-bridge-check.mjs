@@ -46,13 +46,13 @@ class Element {
   constructor(){this.listeners={};this.textContent='';this.disabled=false;this.hidden=false;this.value='0';this.files=[];this.classList={contains:()=>false};}
   addEventListener(name,fn){(this.listeners[name]??=[]).push(fn);}
   fire(name){for(const fn of this.listeners[name]??[])fn({target:this});}
-  append(){} replaceChildren(){} setAttribute(name,value){(this.attributes??={})[name]=value;} matches(){return false;}
+  append(){} replaceChildren(){} setAttribute(name,value){(this.attributes??={})[name]=value;} removeAttribute(name){delete this[name];} matches(){return false;}
 }
 const elements=new Map(['art','audio','audioFile','play','seek','state','welcome','trackName','trackSub','back','forward','duration','current','scene','sampleTrack','frameRate'].map(id=>[id,new Element()]));
 const traces=[],paints=[]; const canvas=elements.get('art');
 const context={save(){},restore(){},translate(){},rotate(){},fillRect(){},clearRect(){},setTransform(){},beginPath(){},moveTo(x,y){traces.push([x,y]);},lineTo(x,y){traces.push([x,y]);},closePath(){},fill(){paints.push(["fill",this.globalCompositeOperation,this.fillStyle]);},stroke(){paints.push(["stroke",this.lineWidth]);},quadraticCurveTo(){},arc(){}};
 canvas.getContext=()=>context;canvas.getBoundingClientRect=()=>({width:300,height:200});canvas.clientWidth=300;canvas.clientHeight=200;
-const audio=elements.get('audio');Object.assign(audio,{paused:true,currentTime:0,duration:120,load(){},play:async()=>{audio.paused=false;audio.fire('play');}});
+const audio=elements.get('audio');Object.assign(audio,{paused:true,currentTime:0,duration:120,load(){},pause(){audio.paused=true;audio.fire('pause');},play:async()=>{audio.paused=false;audio.fire('play');}});
 const bodyClasses=new Set();globalThis.document={body:{classList:{contains:n=>bodyClasses.has(n),toggle:(n,on)=>on?bodyClasses.add(n):bodyClasses.delete(n)}},querySelector:s=>elements.get(s.slice(1)),createElementNS:()=>new Element()};
 globalThis.ResizeObserver=class{observe(){}};globalThis.requestAnimationFrame=()=>0;globalThis.devicePixelRatio=1;globalThis.__sonoraReducedMotion=false;globalThis.matchMedia=()=>({matches:globalThis.__sonoraReducedMotion});
 globalThis.URL.createObjectURL=()=>'blob:track';globalThis.URL.revokeObjectURL=()=>{};
@@ -70,6 +70,20 @@ for(const [name,type] of [['song.mp3','audio/mpeg'],['song.aac','audio/aac'],['s
   picker.files=[{name,type}];picker.fire('change');
   if(audio.src!=='blob:track'||elements.get('trackName').textContent!==name.replace(/\.[^.]+$/,'')||elements.get('play').disabled)throw Error('all audio formats must share local audio path: '+type);
 }
+
+// Native Local File must use the same selected-file audio path and leave no playback behind on a source switch.
+SONORA.setShell();SONORA.setPayload({mode:'local',generation:1});
+if(!bodyClasses.has('sonora-local')||SONORA.snapshot().mode!=='local'||!html.includes('.sonora-shell.sonora-local .transport')||!html.includes('.sonora-shell.sonora-local .tools'))throw Error('native local controls are hidden');
+picker.files=[{name:'native-song.mp3',type:'audio/mpeg'}];picker.fire('change');
+elements.get('play').fire('click');await new Promise(r=>setTimeout(r,0));
+if(audio.paused||resumes!==1||elements.get('trackName').textContent!=='native-song')throw Error('native local file did not use shared playback');
+elements.get('seek').value=500;elements.get('seek').fire('input');
+if(audio.currentTime!==60)throw Error('native local seek did not reach audio element');
+traces.length=0;__sonoraTestDraw(8);if(!traces.length)throw Error('native local file did not draw');
+let localRevokes=0;URL.revokeObjectURL=()=>localRevokes++;
+SONORA.setPayload(valid('microphone',2));
+if(!audio.paused||audio.src||localRevokes!==1||!elements.get('play').disabled||bodyClasses.has('sonora-local'))throw Error('local playback survived microphone switch');
+SONORA.clear();resumes=0;
 
 SONORA.setShell();SONORA.setPayload(valid('apple',1,{timeline:{playing:false,position:5,duration:120,track:'a'}}));
 traces.length=0;__sonoraTestDraw(16);const paused=JSON.stringify(traces.slice(0,30));

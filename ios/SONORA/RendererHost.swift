@@ -5,7 +5,7 @@ import MediaPlayer
 import AVFoundation
 import Accelerate
 
-enum RendererMode: Hashable { case idle, microphone, apple, spotify }
+enum RendererMode: Hashable { case idle, local, microphone, apple, spotify }
 
 struct RendererHost: UIViewControllerRepresentable {
   let mode: RendererMode
@@ -73,6 +73,7 @@ final class RendererController: UIViewController, WKNavigationDelegate {
     timer?.invalidate()
     timer = nil
     audio.stop()
+    web.evaluateJavaScript("window.SONORA.releaseLocal?.()", completionHandler: nil)
     observers.forEach { NotificationCenter.default.removeObserver($0) }
     observers.removeAll()
   }
@@ -99,6 +100,7 @@ final class RendererController: UIViewController, WKNavigationDelegate {
     mode = next
     switch mode {
     case .idle: clear("Choose a source to begin.")
+    case .local: send(["mode": "local", "generation": generation])
     case .microphone:
       clear("Starting microphone input…")
       beginMic()
@@ -158,7 +160,8 @@ final class RendererController: UIViewController, WKNavigationDelegate {
     generation += 1
     timer?.fireDate = .distantFuture
     audio.stop()
-    if mode != .spotify { clear("Paused while SONORA is inactive.") }
+    if mode == .local { web.evaluateJavaScript("window.SONORA.pauseLocal?.()", completionHandler: nil) }
+    if mode != .spotify && mode != .local { clear("Paused while SONORA is inactive.") }
   }
 
   private func resume() {
@@ -211,7 +214,7 @@ final class RendererController: UIViewController, WKNavigationDelegate {
   private func bridge() {
     guard active else { return }
     switch mode {
-    case .idle, .spotify: return
+    case .idle, .local, .spotify: return
     case .microphone:
       guard audio.isRunning else { return }
       let snapshot = audio.snapshot()

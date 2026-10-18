@@ -5,7 +5,7 @@ const out = new URL('./dist/', root);
 await rm(out, {recursive:true, force:true});
 await mkdir(new URL('icons/', out), {recursive:true});
 await mkdir(new URL('samples/', out), {recursive:true});
-for (const name of ['samples/september-14.mp3', 'index.html', 'i18n.js', 'native-bridge.js', 'pwa.mjs', 'sw.js', 'manifest.webmanifest', '_headers', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png']) {
+for (const name of ['samples/september-14.mp3', 'index.html', 'privacy.html', 'support.html', 'i18n.js', 'native-bridge.js', 'pwa.mjs', 'sw.js', 'manifest.webmanifest', '_headers', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png']) {
   await copyFile(new URL(name, root), new URL(name, out));
 }
 console.log('Built SONORA browser-only assets in dist/');

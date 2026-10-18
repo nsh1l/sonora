@@ -30,7 +30,7 @@ Datamosh is an original real-time Canvas2D P-frame-style reconstruction: a share
 
 Cymatic treats sound as a vibrating print plate: a bounded 96×96 analytical standing-wave field collects sand-like marks near its nodal lines. Bass and mids reshape the interference modes; treble pulls a cobalt-blue registration layer away from vermilion and chalk powder. The plate slowly tilts and its interference redistributes, without feedback trails or particle histories. This is Chladni-inspired generative art, not a physical simulation or measurement of actual resonances. Reduced motion freezes tilt/interference phase but retains real band response; Apple Music remains deterministic playback-position art and pauses with its timeline. Source switches and seeks cannot retain old particles because each field is rebuilt from current inputs. Cymatic joins the fullscreen swipe cycle and shared five-second whole-frame crossfade.
 
-Dice is a floating sculpture of seven varied cubes, hand-projected orthographically in Canvas2D. Nearly transparent teal/coral ink planes, fine mint/coral contours and projected pip rings carry Bloom/Orbit’s spectral linework into recognizable cubes. A single faint pale-blue edge echo responds to treble; there are no opaque faces, black spots or decorative glow. Each cube has fixed 1–6 face-local pip layouts (opposite faces sum to seven); back faces are culled and visible faces are depth-sorted. Bass lifts/scales the cubes, mids tilt them, and treble shifts the pale-blue echo. Existing phase drives continuous tumbling; no randomness, wall-clock animation, physics engine, beat detection or BPM claim is involved. Geometry is bounded to 42 candidate faces, at most 21 visible faces and 12 vertices per pip, with no histories or feedback buffer. Reduced motion freezes rotation, tilt and bounce but retains live bass scaling and treble registration. Apple Music uses only deterministic playback position and holds when paused; seeks recompute directly. Dice shares the existing fullscreen cycle and five-second whole-frame transition. The native Visual style picker uses a menu for eight styles; Source remains segmented.
+Dice is a floating sculpture of seven varied cubes, hand-projected orthographically in Canvas2D. Nearly transparent teal/coral ink planes, fine mint/coral contours and projected pip rings carry Bloom/Orbit’s spectral linework into recognizable cubes. A single faint pale-blue edge echo responds to treble; there are no opaque faces, black spots or decorative glow. Each cube has fixed 1–6 face-local pip layouts (opposite faces sum to seven); back faces are culled and visible faces are depth-sorted. Bass lifts/scales the cubes, mids tilt them, and treble shifts the pale-blue echo. Existing phase drives continuous tumbling; no randomness, wall-clock animation, physics engine, beat detection or BPM claim is involved. Geometry is bounded to 42 candidate faces, at most 21 visible faces and 12 vertices per pip, with no histories or feedback buffer. Reduced motion freezes rotation, tilt and bounce but retains live bass scaling and treble registration. Apple Music uses only deterministic playback position and holds when paused; seeks recompute directly. Dice shares the existing fullscreen cycle and five-second whole-frame transition. The native Visual style and Source pickers use menus.
 
 Velvet extends the midnight/mint/coral world with local warm amber and rose, tuned for a slow, intimate Quiet Storm mood. **Velvet** layers four broad oblique velour-colored planes, each feathered with twelve nested 97-vertex contours and a broad radial light wash. Bass gently expands the planes; mids shift the coral/amber illumination; highs change only a subdued nap tint. Existing phase drives slow breathing and drift, with no outline sparks or flashes. Its fixed ceiling is 4,656 generated vertices, 52 translucent fills and four gradients per frame.
 
@@ -69,7 +69,7 @@ When changing a precached asset, bump the `CACHE` version in `sw.js` so existing
 ### Publish to the existing Cloudflare Pages project
 
 ```sh
-bun checks/i18n-check.mjs && bun checks/native-bridge-check.mjs && bun checks/pwa-check.mjs && bun checks/fullscreen-check.mjs && bun checks/dub-check.mjs && bun checks/credits-check.mjs && bun build.mjs
+bun checks/i18n-check.mjs && bun checks/native-bridge-check.mjs && bun checks/ios-release-prep-check.mjs && bun checks/pwa-check.mjs && bun checks/fullscreen-check.mjs && bun checks/dub-check.mjs && bun checks/credits-check.mjs && bun build.mjs
 bunx wrangler pages deploy dist --project-name sonora-viz --branch main
 ```
 
@@ -77,23 +77,28 @@ bunx wrangler pages deploy dist --project-name sonora-viz --branch main
 
 ## iPhone source app
 
-`ios/SONORA.xcodeproj` is an iPhone target (iOS 17.4+) that bundles the repository-root `index.html`, `i18n.js` and `native-bridge.js` directly; there is one renderer, not a copied fork. Open it in Xcode, select a signing team and a unique bundle ID, then build:
+`ios/SONORA.xcodeproj` is an iPhone target (iOS 17.4+) that bundles the repository-root `index.html`, `i18n.js` and `native-bridge.js` directly; there is one renderer, not a copied fork. The target uses bundle ID `party.alwaysyesterday.sonora`, version 1.0 (build 1), an opaque 1024 px icon derived from the existing SONORA motif, and `PrivacyInfo.xcprivacy`. Open it in Xcode, select a signing team for that bundle ID, then build:
 
 ```sh
 xcodebuild -project ios/SONORA.xcodeproj -scheme SONORA -destination 'generic/platform=iOS' build
 ```
 
-The source was prepared on Linux; Swift/Xcode compilation and iPhone hardware behavior have **not** been verified here.
+The source was prepared on Linux; Swift/Xcode compilation and iPhone hardware behavior have **not** been verified here. The `feat/ios-release-prep` workflow runs on `macos-latest` by manual dispatch or relevant branch pushes, requires iOS SDK 26+, and uploads the build log plus an explicitly **unsigned, non-installable** `.xcarchive`. It does not sign, distribute, or submit the app. A physical iPhone pass, signing setup, App Store privacy review, and distribution review remain release gates.
+
+- **Local File:** choose Local File in the SwiftUI Source menu, then use the file chooser, Play/Pause, and seek rail shown in the WKWebView. It uses the existing browser audio element and Web Audio analyser. Selection is user initiated; the object URL and playback are cleared when leaving Local File or destroying the renderer. File decoding and the iOS picker still need device verification.
 
 - **Microphone:** input-only `AVAudioEngine` + Accelerate frequency bands, using the actual input sample rate and a calibrated sensitivity control. Audio is not monitored through SONORA. Test permission denial, headphones, route changes, interruptions, and background/foreground behavior on an iPhone.
 - **Apple Music:** read-only system-player track metadata and playback position. The existing canvas draws deterministic art from playback time; it is not audio capture, FFT, BPM, or beat detection. Test authorization, pause/seek, and track changes with MusicKit/MediaPlayer on a device. This source does not claim Apple policy or distribution approval.
-- **Spotify (optional metadata screen):** requires user-owned Spotify developer app setup; nothing is preconfigured. Set `SpotifyClientID` and `SpotifyRedirectURL` in `ios/SONORA/Info.plist` and replace the `webcredentials:example.com` placeholder in `ios/SONORA/SONORA.entitlements` with a domain you control. Register the exact HTTPS redirect in Spotify Dashboard, enable Associated Domains for the App ID, and serve a valid `apple-app-site-association` file for that app/domain. Apple requires the HTTPS callback host to be associated with the app; Spotify requires HTTPS (localhost is not allowed). The app uses PKCE S256, random state, and only `user-read-currently-playing`; tokens stay in memory and are cleared on disconnect. Spotify developer-mode testing is limited to the account owner (who needs Premium) and up to five allowlisted users; this does not grant public access or imply Spotify policy/commercial approval. Spotify is isolated from the visualizer and has no playback controls, audio analysis, or visual synchronization.
+- **Spotify (optional metadata screen):** hidden until a developer supplies `SpotifyClientID` and `SpotifyRedirectURL` in `ios/SONORA/Info.plist`. No associated-domain entitlement is shipped. To enable the HTTPS callback, configure the matching `applinks:` Associated Domain for a domain you control, register the exact redirect in Spotify Dashboard, and serve a valid `apple-app-site-association` file. Spotify requires HTTPS (localhost is not allowed). The app uses PKCE S256, random state, and only `user-read-currently-playing`; tokens stay in memory and are cleared on disconnect. Developer-mode eligibility and Spotify policy must be checked before enabling it for distribution. Spotify is isolated from the visualizer and has no playback controls, audio analysis, or visual synchronization.
+
+Public [Privacy](https://sonora.alwaysyesterday.party/privacy.html) and [Support](https://sonora.alwaysyesterday.party/support.html) pages are part of the browser build and offline shell. Support points to [GitHub Issues](https://github.com/nsh1l/sonora/issues). These URLs become live only after a separate website deployment.
 
 Run the executable checks with Bun:
 
 ```sh
 bun checks/i18n-check.mjs
 bun checks/native-bridge-check.mjs
+bun checks/ios-release-prep-check.mjs
 bun checks/pwa-check.mjs
 bun checks/fullscreen-check.mjs
 bun checks/dub-check.mjs

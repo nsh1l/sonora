@@ -51,6 +51,12 @@ sandbox.SONORA.setFrameRate(24);sandbox.frame(clock+=100);const admitted=[scale(
 // Existing scene gestures/arrow keys must not leak through the modal.
 ui.document.querySelector('#scene').options=[{value:'bloom'},{value:'orbit'}];
 key(ui,'ArrowRight');assert.equal(ui.document.querySelector('#scene').value,undefined);
+sandbox.SONORA.setFrameRate(0);
+audio.paused=false;sandbox.fft([210,180,120]);
+sandbox.__sonoraNative={mode:'local',generation:3,timeline:{position:0,track:''}};
+for(let i=0;i<12;i++)sandbox.frame(clock+=80);
+assert(scale()>0,'native local file must deform credits from analyzed audio');
+audio.paused=true;for(let i=0;i<100;i++)sandbox.frame(clock+=80);assert.equal(scale(),0,'native local pause must settle credits');
 get('#creditsClose').emit('click');assert.equal(scale(),0);assert.equal(get('#creditsDialog').hidden,true);
 assert(rafCalls>0);
-console.log('PASS: credits exact copy, dialog/focus/Tab/Escape, native/fallback/exit/races, SVG band deformation finite 0–6px, silence/paused settling, reduced zero, Apple timeline hold, and real 24fps admission');
+console.log('PASS: credits exact copy, dialog/focus/Tab/Escape, native/fallback/exit/races, SVG band deformation finite 0–6px, silence/paused and native local settling, reduced zero, Apple timeline hold, and real 24fps admission');

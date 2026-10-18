@@ -1,0 +1,72 @@
+name: iOS unsigned release preparation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/ios-release-prep]
+    paths:
+      - '.github/workflows/ios-release-prep.yml'
+      - 'ios/**'
+      - 'index.html'
+      - 'i18n.js'
+      - 'native-bridge.js'
+      - 'privacy.html'
+      - 'support.html'
+      - 'build.mjs'
+      - 'server.mjs'
+      - 'sw.js'
+      - 'README.md'
+      - 'PRODUCT.md'
+      - 'checks/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-release-prep-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unsigned-archive:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      # Official checkout v4.2.2 commit; pin prevents a mutable action tag from changing CI behavior.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Print Xcode and iOS SDK; require iOS 26+
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -showsdks
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "Selected iOS SDK: $sdk_version"
+          sdk_major="${sdk_version%%.*}"
+          if [[ ! "$sdk_major" =~ ^[0-9]+$ ]] || (( sdk_major < 26 )); then
+            echo "iOS SDK 26 or newer is required; found $sdk_version" >&2
+            exit 1
+          fi
+      - name: Build unsigned Release archive
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build/ios-release-prep
+          xcodebuild -project ios/SONORA.xcodeproj -scheme SONORA -configuration Release -destination 'generic/platform=iOS' -archivePath "$PWD/build/ios-release-prep/SONORA-unsigned.xcarchive" CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee build/ios-release-prep/xcodebuild.log
+      - name: Upload build log
+        if: always()
+        # Official upload-artifact v4.6.2 commit.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sonora-ios-release-prep-build-log
+          path: build/ios-release-prep/xcodebuild.log
+          if-no-files-found: warn
+      - name: Upload unsigned archive (not installable)
+        if: success()
+        # Official upload-artifact v4.6.2 commit.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sonora-ios-unsigned-xcarchive-not-installable
+          path: build/ios-release-prep/SONORA-unsigned.xcarchive
+          if-no-files-found: error

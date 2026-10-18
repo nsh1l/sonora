@@ -51,5 +51,5 @@ assert(ref, 'native catalog file reference');
 const buildRef = project.match(new RegExp('(\\w+) = \\{isa = PBXBuildFile; fileRef = '+ref+';'))?.[1];
 assert(buildRef && project.match(/isa = PBXResourcesBuildPhase; files = \(([^)]+)\)/)?.[1].includes(buildRef), 'catalog must be copied as an iOS bundle resource');
 assert(project.match(/path = SONORA; sourceTree/));
-assert((await read('sw.js')).includes("sonora-pwa-v23"));
+assert((await read('sw.js')).includes("sonora-pwa-v24"));
 console.log(`PASS: i18n ${used.size}/${Object.keys(en).length} keys; ${texts.length} static text and ${labels.length} ARIA fallbacks; safe interpolation/DOM, English declarations, web/PWA/native packaging`);

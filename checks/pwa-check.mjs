@@ -45,6 +45,10 @@ const offlineShell = await dispatch('fetch', request('/remembered-route', {mode:
 if (await offlineShell.text() !== 'precache:/index.html') throw Error('offline navigation did not receive the shell');
 const cachedScript = await dispatch('fetch', request('/pwa.mjs'));
 if (await cachedScript.text() !== 'precache:/pwa.mjs') throw Error('cached shell asset was not served');
+for (const page of ['/privacy.html','/support.html']) {
+  const response = await dispatch('fetch', request(page,{mode:'navigate'}));
+  if (await response.text() !== `precache:${page}`) throw Error(`offline ${page} did not use its own page`);
+}
 for (const ignored of [
   request('/song.mp3'), request('/samples/september-14.mp3'), request('/index.html?cache=1'), request('/api', {method: 'POST'}),
   request('https://elsewhere.test/index.html')
